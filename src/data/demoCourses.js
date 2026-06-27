@@ -1,0 +1,150 @@
+export const courses = [
+  {
+    id: "html-island",
+    title: "HTML Island",
+    language: "HTML",
+    track: "Frontend",
+    difficulty: "Beginner",
+    world: "Tropical markup archipelago",
+    accent: "#58f0b6",
+    xp: 1250,
+    lessons: 5,
+    progress: 40,
+    pro: false,
+    description: "Build pages from real semantic blocks while opening new parts of the island map.",
+  },
+  {
+    id: "css-galaxy",
+    title: "CSS Galaxy",
+    language: "CSS",
+    track: "Frontend",
+    difficulty: "Beginner",
+    world: "Orbiting style systems",
+    accent: "#8b5cf6",
+    xp: 1600,
+    lessons: 7,
+    progress: 18,
+    pro: false,
+    description: "Launch layouts, animation trails, and responsive planets without losing control.",
+  },
+  {
+    id: "js-city",
+    title: "JS City",
+    language: "JavaScript",
+    track: "Frontend",
+    difficulty: "Advanced",
+    world: "Reactive neon streets",
+    accent: "#38bdf8",
+    xp: 2100,
+    lessons: 9,
+    progress: 7,
+    pro: true,
+    description: "Solve city missions with functions, DOM events, arrays, and async logic.",
+  },
+  {
+    id: "python-forest",
+    title: "Python Forest",
+    language: "Python",
+    track: "Backend",
+    difficulty: "Beginner",
+    world: "Calm automation woods",
+    accent: "#facc15",
+    xp: 1800,
+    lessons: 8,
+    progress: 0,
+    pro: true,
+    description: "Write readable scripts, loops, and data tools inside a living training map.",
+  },
+  {
+    id: "cpp-dungeon",
+    title: "C++ Dungeon",
+    language: "C++",
+    track: "GameDev",
+    difficulty: "Advanced",
+    world: "Systems boss arena",
+    accent: "#fb7185",
+    xp: 2600,
+    lessons: 10,
+    progress: 0,
+    pro: true,
+    description: "Master memory, types, and performance through compact dungeon encounters.",
+  },
+];
+
+export const htmlLessons = [
+  {
+    id: "html-1",
+    title: "Mission 1: Signal Beacon",
+    content: "Create a main heading for your first quest page.",
+    starterCode: "<h1></h1>",
+    expected: "<h1>Hello, CodeQuest!</h1>",
+    hint: "Use an h1 tag and put the exact mission phrase inside it.",
+    xp: 120,
+  },
+  {
+    id: "html-2",
+    title: "Mission 2: Base Camp",
+    content: "Add a paragraph that explains what your page is about.",
+    starterCode: "<p></p>",
+    expected: "<p>I am learning HTML.</p>",
+    hint: "A paragraph starts with p and ends with /p.",
+    xp: 140,
+  },
+  {
+    id: "html-3",
+    title: "Mission 3: Supply List",
+    content: "Build an unordered list with two items: HTML and CSS.",
+    starterCode: "<ul>\n  <li></li>\n</ul>",
+    expected: "<ul><li>HTML</li><li>CSS</li></ul>",
+    hint: "Keep both list items inside the ul element.",
+    xp: 180,
+  },
+  {
+    id: "html-4",
+    title: "Mission 4: Portal Link",
+    content: "Create a link to the Projects page.",
+    starterCode: "<a href=\"\"></a>",
+    expected: "<a href=\"#projects\">Projects</a>",
+    hint: "Use #projects in href and Projects as the label.",
+    xp: 220,
+  },
+  {
+    id: "html-5",
+    title: "Boss: Landing Card",
+    content: "Combine a section, heading, paragraph, and button.",
+    starterCode: "<section>\n</section>",
+    expected: "<section><h2>Quest Ready</h2><p>Build every day.</p><button>Start</button></section>",
+    hint: "Order matters: h2, p, then button inside section.",
+    xp: 300,
+  },
+];
+
+export const projects = [
+  { id: "personal-landing", course: "HTML", title: "Personal landing", difficulty: "Beginner", xp: 300, pro: false, requirement: 2 },
+  { id: "animated-cards", course: "CSS", title: "Animated card set", difficulty: "Beginner", xp: 450, pro: false, requirement: 3 },
+  { id: "todo-reactor", course: "JavaScript", title: "Todo app", difficulty: "Advanced", xp: 650, pro: true, requirement: 4 },
+  { id: "python-calculator", course: "Python", title: "Calculator", difficulty: "Beginner", xp: 520, pro: true, requirement: 4 },
+  { id: "react-dashboard", course: "React", title: "Progress dashboard", difficulty: "Advanced", xp: 900, pro: true, requirement: 5 },
+];
+
+export const badges = ["First Quest", "HTML Scout", "Daily Spark", "Pixel Perfect", "Pro Trial"];
+
+export const dailyQuests = [
+  { id: "solve-lesson", title: "Complete 1 mission", reward: "80 XP", type: "lesson" },
+  { id: "keep-streak", title: "Open Code Lab", reward: "25 coins", type: "visit-lab" },
+  { id: "ship-project", title: "Submit a mini project", reward: "120 XP", type: "project" },
+];
+
+export const shopItems = [
+  { id: "midnight-theme", title: "Midnight Focus Theme", price: 280, category: "Theme" },
+  { id: "profile-frame-proto", title: "Prototype Frame", price: 180, category: "Profile" },
+  { id: "animated-badge-flow", title: "Flow Badge", price: 320, category: "Badge" },
+  { id: "cursor-cyan", title: "Cyan Cursor", price: 120, category: "Cursor" },
+];
+
+export const tutorPrompts = [
+  "Explain why semantic HTML matters.",
+  "Give me a hint without the answer.",
+  "Create a similar practice task.",
+  "Review my solution simply.",
+];
