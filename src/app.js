@@ -1,4 +1,13 @@
-import { badges, courses, dailyQuests, htmlLessons, projects, shopItems, tutorPrompts } from "./data/demoCourses.js";
+import {
+  badges,
+  courses,
+  dailyQuests,
+  htmlLessons,
+  lessonsByCourse,
+  projects,
+  shopItems,
+  tutorPrompts,
+} from "./data/demoCourses.js";
 import { checkAnswer } from "./lib/codeChecker.js";
 import { loadState, resetState, updateState } from "./store/userStore.js";
 
@@ -6,11 +15,11 @@ const app = document.querySelector("#app");
 
 let route = "home";
 let filter = "All";
-let selectedLesson = htmlLessons[0];
+let selectedCourseId = loadState().activeCourseId || "html-island";
+let selectedLesson = getLessons(selectedCourseId)[0] || htmlLessons[0];
 let code = selectedLesson.starterCode;
 let toast = "";
 let modal = "";
-let selectedCourseId = loadState().activeCourseId || "html-island";
 
 const navItems = [
   ["home", "Overview", "OV"],
@@ -29,8 +38,31 @@ function state() {
   return loadState();
 }
 
+function isPro() {
+  return state().plan !== "free";
+}
+
 function selectedCourse() {
   return courses.find((course) => course.id === selectedCourseId) || courses[0];
+}
+
+function getLessons(courseId) {
+  return lessonsByCourse[courseId] || [];
+}
+
+function getCourseByLesson(lessonId) {
+  return courses.find((course) => getLessons(course.id).some((lesson) => lesson.id === lessonId)) || courses[0];
+}
+
+function completedForCourse(courseId) {
+  const completed = new Set(state().completedLessons);
+  return getLessons(courseId).filter((lesson) => completed.has(lesson.id)).length;
+}
+
+function courseProgress(course = selectedCourse()) {
+  const lessons = getLessons(course.id);
+  if (!lessons.length) return course.progress || 0;
+  return Math.round((completedForCourse(course.id) / lessons.length) * 100);
 }
 
 function setRoute(next) {
@@ -41,21 +73,6 @@ function setRoute(next) {
     updateState((s) => ({ ...s, visitedLabToday: true }));
   }
   render();
-}
-
-function courseProgress(course = selectedCourse()) {
-  if (course.id !== "html-island") return course.progress;
-  const done = new Set(state().completedLessons);
-  return Math.round((htmlLessons.filter((lesson) => done.has(lesson.id)).length / htmlLessons.length) * 100);
-}
-
-function completedHtmlCount() {
-  const done = new Set(state().completedLessons);
-  return htmlLessons.filter((lesson) => done.has(lesson.id)).length;
-}
-
-function isPro() {
-  return state().plan !== "free";
 }
 
 function shell(content, meta = {}) {
@@ -104,7 +121,8 @@ function shell(content, meta = {}) {
 
 function home() {
   const user = state();
-  const htmlCourse = courses[0];
+  const active = selectedCourse();
+  const activeLessons = getLessons(active.id);
   return shell(`
     <section class="command-center">
       <div class="command-copy">
@@ -117,16 +135,12 @@ function home() {
         </div>
       </div>
       <div class="lab-preview">
-        <div class="window-bar"><span></span><span></span><span></span><strong>mission.html</strong></div>
-        <pre><code>&lt;section class="quest-card"&gt;
-  &lt;h2&gt;Quest Ready&lt;/h2&gt;
-  &lt;p&gt;Build every day.&lt;/p&gt;
-  &lt;button&gt;Start&lt;/button&gt;
-&lt;/section&gt;</code></pre>
+        <div class="window-bar"><span></span><span></span><span></span><strong>${selectedLesson.id}</strong></div>
+        <pre><code>${escapeHtml(selectedLesson.starterCode)}</code></pre>
         <div class="preview-status">
           <span class="status-dot"></span>
-          <strong>${completedHtmlCount()}/5 HTML missions completed</strong>
-          <span class="tag">+300 XP boss</span>
+          <strong>${completedForCourse(active.id)}/${activeLessons.length} ${active.language} missions completed</strong>
+          <span class="tag">+${selectedLesson.xp} XP</span>
         </div>
       </div>
     </section>
@@ -135,18 +149,18 @@ function home() {
       ${statCard("Level", user.level, "Active learning tier")}
       ${statCard("Streak", user.streak, "Days in a row")}
       ${statCard("Coins", user.coins, "Earned by learning")}
-      ${statCard("HTML", `${courseProgress(htmlCourse)}%`, "Current path")}
+      ${statCard(active.language, `${courseProgress(active)}%`, "Current path")}
     </section>
 
     <section class="split-layout">
       <article class="panel focus-panel">
         <div class="section-head">
-          <div><span class="mini-label">Current track</span><h2>${htmlCourse.title}</h2></div>
+          <div><span class="mini-label">Current track</span><h2>${active.title}</h2></div>
           <button class="secondary-btn compact" data-route="course">Open map</button>
         </div>
-        <p class="muted">${htmlCourse.description}</p>
+        <p class="muted">${active.description}</p>
         <div class="track-strip">
-          ${htmlLessons.map((lesson, index) => `<button class="${state().completedLessons.includes(lesson.id) ? "done" : ""}" data-lesson="${lesson.id}">${index + 1}</button>`).join("")}
+          ${activeLessons.map((lesson, index) => `<button class="${state().completedLessons.includes(lesson.id) ? "done" : ""}" data-lesson="${lesson.id}">${index + 1}</button>`).join("")}
         </div>
       </article>
       <article class="panel">
@@ -205,7 +219,7 @@ function courseCard(course) {
         <div class="tag-list">
           <span class="tag">${course.track}</span>
           <span class="tag">${course.difficulty}</span>
-          <span class="tag">${course.lessons} lessons</span>
+          <span class="tag">${getLessons(course.id).length} missions</span>
           <span class="tag">${course.xp} XP</span>
         </div>
         <div class="row-between"><span class="muted">Progress</span><strong>${courseProgress(course)}%</strong></div>
@@ -219,59 +233,51 @@ function courseCard(course) {
 function courseDetail() {
   const user = state();
   const course = selectedCourse();
-  const isHtml = course.id === "html-island";
-  const done = new Set(user.completedLessons);
+  const lessons = getLessons(course.id);
+  const completed = new Set(user.completedLessons);
+  const lockedCourse = course.pro && !isPro();
   return shell(`
     <section class="split-layout wide-left">
       <article class="panel course-hero">
         <span class="mini-label">${course.title}</span>
-        <h2>${isHtml ? "Semantic survival path" : `${course.language} path preview`}</h2>
-        <p>${isHtml ? "Пять быстрых миссий по структуре HTML: заголовки, текст, списки, ссылки и финальная карточка. После прохождения открывается сертификат." : "Этот трек уже есть в каталоге MVP. Полные миссии будут подключены после расширения базы уроков; Pro-доступ показывает, как будет работать блокировка контента."}</p>
+        <h2>${course.language} mission path</h2>
+        <p>${course.description} ${lockedCourse ? "Этот трек доступен на Pro." : "Открой миссию, реши задачу в Code Lab и забери XP."}</p>
         <div class="insight-grid compact-grid">
           ${statCard("Progress", `${courseProgress(course)}%`, "Track completion")}
           ${statCard("XP Pool", course.xp, "Available reward")}
-          ${statCard("Status", course.pro && !isPro() ? "Locked" : "Open", "Access")}
+          ${statCard("Status", lockedCourse ? "Locked" : "Open", "Access")}
         </div>
         <div class="actions">
-          ${isHtml ? `<button class="primary-btn" data-route="lesson">Продолжить</button>` : `<button class="primary-btn" data-route="pricing">Unlock full path</button>`}
-          <button class="secondary-btn" data-certificate="html">Certificate preview</button>
+          ${lockedCourse ? `<button class="primary-btn" data-route="pricing">Unlock full path</button>` : `<button class="primary-btn" data-lesson="${lessons[0]?.id || ""}">Продолжить</button>`}
+          <button class="secondary-btn" data-certificate="${course.id}">Certificate preview</button>
         </div>
       </article>
       <section class="mission-list">
-        ${isHtml ? htmlLessons.map((lesson, index) => {
-          const locked = !isPro() && user.dailyLessonsCompleted >= 5 && !done.has(lesson.id);
-          return `<button class="mission-row ${done.has(lesson.id) ? "done" : ""} ${locked ? "locked" : ""}" data-lesson="${lesson.id}">
-            <span class="node">${done.has(lesson.id) ? "OK" : `0${index + 1}`}</span>
+        ${lessons.map((lesson, index) => {
+          const locked = lockedCourse || (!isPro() && user.dailyLessonsCompleted >= 5 && !completed.has(lesson.id));
+          return `<button class="mission-row ${completed.has(lesson.id) ? "done" : ""} ${locked ? "locked" : ""}" data-lesson="${lesson.id}">
+            <span class="node">${completed.has(lesson.id) ? "OK" : `0${index + 1}`}</span>
             <span><strong>${lesson.title}</strong><small>${lesson.content}</small></span>
             <span class="tag">${lesson.xp} XP</span>
           </button>`;
-        }).join("") : previewMissions(course)}
+        }).join("")}
       </section>
     </section>
   `, { title: "Learning Map", kicker: `${course.language} track` });
 }
 
-function previewMissions(course) {
-  return ["Core syntax", "Practice lab", "Mini project"].map((title, index) => `
-    <div class="mission-row locked">
-      <span class="node">0${index + 1}</span>
-      <span><strong>${title}</strong><small>${course.pro && !isPro() ? "Upgrade to Pro to unlock this path." : "Coming next in the MVP roadmap."}</small></span>
-      <span class="tag">${course.pro ? "Pro" : "Soon"}</span>
-    </div>
-  `).join("");
-}
-
 function lessonView() {
   const user = state();
-  const locked = !isPro() && user.dailyLessonsCompleted >= 5 && !user.completedLessons.includes(selectedLesson.id);
+  const course = getCourseByLesson(selectedLesson.id);
+  const locked = (course.pro && !isPro()) || (!isPro() && user.dailyLessonsCompleted >= 5 && !user.completedLessons.includes(selectedLesson.id));
   return shell(`
     <section class="lab-layout">
       <article class="panel lesson-brief">
-        <span class="mini-label">Code mission</span>
+        <span class="mini-label">${course.language} mission</span>
         <h2>${selectedLesson.title}</h2>
         <p>${selectedLesson.content}</p>
         <div class="hint-box"><strong>Hint</strong><span>${selectedLesson.hint}</span></div>
-        <div class="hint-box"><strong>Expected behavior</strong><span>Answer is checked by normalized HTML structure, so spacing does not matter.</span></div>
+        <div class="hint-box"><strong>Expected behavior</strong><span>Answer is checked with normalized code, so spacing differences are okay.</span></div>
         <div class="actions">
           <button class="secondary-btn compact" data-cycle-lesson="prev">Prev</button>
           <button class="secondary-btn compact" data-cycle-lesson="next">Next</button>
@@ -283,7 +289,7 @@ function lessonView() {
           <span class="tag">${isPro() ? "Unlimited Pro" : `${user.dailyLessonsCompleted}/5 Free`}</span>
         </div>
         <textarea aria-label="Mission code editor" ${locked ? "disabled" : ""} spellcheck="false">${code}</textarea>
-        ${locked ? `<div class="empty-note">Daily lesson limit reached. Upgrade to Pro for unlimited missions.</div>` : ""}
+        ${locked ? `<div class="empty-note">This mission is locked by your current access or daily limit.</div>` : ""}
         <div class="actions">
           <button class="primary-btn" data-check-code ${locked ? "disabled" : ""}>Проверить</button>
           <button class="secondary-btn" data-fill-answer>Use demo answer</button>
@@ -350,14 +356,14 @@ function profileView() {
 function leaderboardView() {
   const user = state();
   const rows = [
-    ["01", user.username, `${user.xp} XP`],
-    ["02", "Mira.js", "2710 XP"],
-    ["03", "StackSage", "2515 XP"],
-    ["04", "PixelRin", "2300 XP"],
-  ].sort((a, b) => Number(b[2].split(" ")[0]) - Number(a[2].split(" ")[0]));
+    [user.username, `${user.xp} XP`],
+    ["Mira.js", "2710 XP"],
+    ["StackSage", "2515 XP"],
+    ["PixelRin", "2300 XP"],
+  ].sort((a, b) => Number(b[1].split(" ")[0]) - Number(a[1].split(" ")[0]));
   return shell(`
     <section class="panel table-panel">
-      ${rows.map((row, index) => `<div class="leader-row"><strong>${String(index + 1).padStart(2, "0")}</strong><span>${row[1]}</span><span class="tag">${row[2]}</span></div>`).join("")}
+      ${rows.map((row, index) => `<div class="leader-row"><strong>${String(index + 1).padStart(2, "0")}</strong><span>${row[0]}</span><span class="tag">${row[1]}</span></div>`).join("")}
     </section>
     <section class="panel">
       <span class="mini-label">Top projects</span>
@@ -379,10 +385,10 @@ function projectsView() {
 function projectRow(project, user) {
   const completed = user.completedProjects.includes(project.id);
   const lockedByPro = project.pro && !isPro();
-  const lockedByProgress = completedHtmlCount() < project.requirement;
+  const lockedByProgress = completedForCourse("html-island") < project.requirement;
   const locked = lockedByPro || lockedByProgress;
   return `<div class="project-row ${completed ? "complete" : ""}">
-    <span><strong>${project.title}</strong><small>${project.course} · requires ${project.requirement}/5 HTML missions${completed ? " · submitted" : ""}</small></span>
+    <span><strong>${project.title}</strong><small>${project.course} - requires ${project.requirement}/5 HTML missions${completed ? " - submitted" : ""}</small></span>
     <span class="tag">${project.difficulty}</span>
     <button class="${locked ? "secondary-btn" : "primary-btn"} compact" data-project="${project.id}" ${completed ? "disabled" : ""}>${completed ? "Done" : lockedByPro ? "Pro" : lockedByProgress ? "Locked" : `Submit +${project.xp} XP`}</button>
   </div>`;
@@ -423,14 +429,14 @@ function moreView() {
       </article>
       <article class="panel">
         <span class="mini-label">Referral</span>
-        <h2>${user.referralCount} invited · ${user.proReferralCount} Pro</h2>
+        <h2>${user.referralCount} invited - ${user.proReferralCount} Pro</h2>
         <p class="muted">codequest.app/ref/${user.username}</p>
         <button class="secondary-btn compact" data-copy-referral>Copy referral</button>
       </article>
       <article class="panel">
         <span class="mini-label">Certificates</span>
         <h2>${user.certificates.length}</h2>
-        <p class="muted">${user.certificates.length ? user.certificates.join(", ") : "Complete HTML Island to generate the first certificate."}</p>
+        <p class="muted">${user.certificates.length ? user.certificates.join(", ") : "Complete a course to generate the first certificate."}</p>
       </article>
       <article class="panel">
         <span class="mini-label">Shop</span>
@@ -451,7 +457,7 @@ function moreView() {
 function shopItem(item, user) {
   const owned = user.purchasedItems.includes(item.id);
   return `<div class="shop-item">
-    <span><strong>${item.title}</strong><small>${item.category} · ${item.price} coins</small></span>
+    <span><strong>${item.title}</strong><small>${item.category} - ${item.price} coins</small></span>
     <button class="${owned ? "secondary-btn" : "primary-btn"} compact" data-buy-item="${item.id}" ${owned ? "disabled" : ""}>${owned ? "Owned" : "Buy"}</button>
   </div>`;
 }
@@ -468,10 +474,11 @@ function modalTemplate() {
 
 function certificateCopy() {
   const user = state();
-  if (!user.certificates.includes("HTML Island")) {
-    return "Complete all 5 HTML missions to generate a PDF certificate with ID and QR verification.";
+  const course = selectedCourse();
+  if (!user.certificates.includes(course.title)) {
+    return `Complete all ${getLessons(course.id).length} ${course.language} missions to generate a PDF certificate with ID and QR verification.`;
   }
-  return `CodeQuest Academy certifies ${user.username} completed HTML Island. Certificate ID: CQ-HTML-${new Date().getFullYear()}-001. QR verification page ready for /verify.`;
+  return `CodeQuest Academy certifies ${user.username} completed ${course.title}. Certificate ID: CQ-${course.language}-${new Date().getFullYear()}-001. QR verification page ready for /verify.`;
 }
 
 function render() {
@@ -520,7 +527,7 @@ function bindEvents() {
   if (resetProgress) resetProgress.addEventListener("click", () => {
     resetState();
     selectedCourseId = "html-island";
-    selectedLesson = htmlLessons[0];
+    selectedLesson = getLessons(selectedCourseId)[0];
     code = selectedLesson.starterCode;
     toast = "Demo progress reset.";
     render();
@@ -536,36 +543,45 @@ function bindEvents() {
 function openCourse(courseId) {
   const course = courses.find((item) => item.id === courseId);
   if (!course) return;
+  selectedCourseId = courseId;
+  updateState((s) => ({ ...s, activeCourseId: courseId }));
   if (course.pro && !isPro()) {
     modal = "pro";
-    selectedCourseId = courseId;
     render();
     return;
   }
-  selectedCourseId = courseId;
-  updateState((s) => ({ ...s, activeCourseId: courseId }));
+  selectedLesson = getLessons(courseId)[0] || selectedLesson;
+  code = selectedLesson.starterCode;
   setRoute("course");
 }
 
 function openLesson(lessonId) {
-  const user = state();
-  const lesson = htmlLessons.find((item) => item.id === lessonId);
+  const lessonCourse = getCourseByLesson(lessonId);
+  const lesson = getLessons(lessonCourse.id).find((item) => item.id === lessonId);
   if (!lesson) return;
+  const user = state();
+  if (lessonCourse.pro && !isPro()) {
+    selectedCourseId = lessonCourse.id;
+    modal = "pro";
+    render();
+    return;
+  }
   if (!isPro() && user.dailyLessonsCompleted >= 5 && !user.completedLessons.includes(lesson.id)) {
     modal = "limit";
     render();
     return;
   }
-  selectedCourseId = "html-island";
+  selectedCourseId = lessonCourse.id;
   selectedLesson = lesson;
   code = selectedLesson.starterCode;
-  updateState((s) => ({ ...s, activeCourseId: "html-island", visitedLabToday: true }));
+  updateState((s) => ({ ...s, activeCourseId: lessonCourse.id, visitedLabToday: true }));
   setRoute("lesson");
 }
 
 function completeLesson() {
+  const course = getCourseByLesson(selectedLesson.id);
   if (!checkAnswer(code, selectedLesson.expected)) {
-    toast = "Almost. Compare tags, text, and order, then try again.";
+    toast = "Almost. Compare code, text, and order, then try again.";
     render();
     return;
   }
@@ -578,10 +594,9 @@ function completeLesson() {
   updateState((s) => {
     const alreadyDone = s.completedLessons.includes(selectedLesson.id);
     const completedLessons = alreadyDone ? s.completedLessons : [...s.completedLessons, selectedLesson.id];
-    const finishedHtml = htmlLessons.every((lesson) => completedLessons.includes(lesson.id));
+    const courseFinished = getLessons(course.id).every((lesson) => completedLessons.includes(lesson.id));
     const earnedBadges = [...s.earnedBadges];
-    if (selectedLesson.id === "html-5" && !earnedBadges.includes("Pixel Perfect")) earnedBadges.push("Pixel Perfect");
-    if (finishedHtml && !earnedBadges.includes("HTML Finisher")) earnedBadges.push("HTML Finisher");
+    if (courseFinished && !earnedBadges.includes(`${course.language} Finisher`)) earnedBadges.push(`${course.language} Finisher`);
     return {
       ...s,
       xp: alreadyDone ? s.xp : s.xp + selectedLesson.xp,
@@ -590,7 +605,7 @@ function completeLesson() {
       dailyLessonsCompleted: alreadyDone ? s.dailyLessonsCompleted : s.dailyLessonsCompleted + 1,
       completedLessons,
       earnedBadges,
-      certificates: finishedHtml && !s.certificates.includes("HTML Island") ? [...s.certificates, "HTML Island"] : s.certificates,
+      certificates: courseFinished && !s.certificates.includes(course.title) ? [...s.certificates, course.title] : s.certificates,
     };
   });
   toast = `Mission complete: +${selectedLesson.xp} XP, coins added, progress saved locally.`;
@@ -598,9 +613,11 @@ function completeLesson() {
 }
 
 function cycleLesson(direction) {
-  const index = htmlLessons.findIndex((lesson) => lesson.id === selectedLesson.id);
-  const nextIndex = direction === "next" ? (index + 1) % htmlLessons.length : (index - 1 + htmlLessons.length) % htmlLessons.length;
-  selectedLesson = htmlLessons[nextIndex];
+  const lessons = getLessons(selectedCourseId);
+  const index = lessons.findIndex((lesson) => lesson.id === selectedLesson.id);
+  const currentIndex = index >= 0 ? index : 0;
+  const nextIndex = direction === "next" ? (currentIndex + 1) % lessons.length : (currentIndex - 1 + lessons.length) % lessons.length;
+  selectedLesson = lessons[nextIndex];
   code = selectedLesson.starterCode;
   render();
 }
@@ -613,7 +630,7 @@ function submitProject(projectId) {
     render();
     return;
   }
-  if (completedHtmlCount() < project.requirement) {
+  if (completedForCourse("html-island") < project.requirement) {
     toast = `Complete ${project.requirement} HTML missions to unlock this project.`;
     render();
     return;
@@ -655,7 +672,7 @@ function askTutor(prompt) {
     return;
   }
   updateState((s) => ({ ...s, tutorQuestionsUsed: isPro() ? s.tutorQuestionsUsed : s.tutorQuestionsUsed + 1 }));
-  toast = `AI Tutor: ${prompt} Try reading the task, then change only one HTML structure at a time.`;
+  toast = `AI Tutor: ${prompt} Try reading the task, then change only one structure at a time.`;
   render();
 }
 
@@ -698,6 +715,13 @@ function exportProgressSnapshot() {
   };
   toast = `Progress snapshot: ${JSON.stringify(snapshot)}`;
   render();
+}
+
+function escapeHtml(value) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
 }
 
 render();
