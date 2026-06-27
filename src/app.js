@@ -366,6 +366,7 @@ function courseDetail() {
   const lessons = getLessons(course.id);
   const completed = new Set(user.completedLessons);
   const lockedCourse = course.pro && !isPro();
+  const nextLesson = lessons.find((lesson) => !completed.has(lesson.id)) || lessons[0];
   return shell(`
     <section class="split-layout wide-left">
       <article class="panel course-hero">
@@ -378,17 +379,19 @@ function courseDetail() {
           ${statCard("Status", lockedCourse ? "Locked" : "Open", "Access")}
         </div>
         <div class="actions">
-          ${lockedCourse ? `<button class="primary-btn" data-route="pricing">Unlock full path</button>` : `<button class="primary-btn" data-lesson="${lessons[0]?.id || ""}">Продолжить</button>`}
+          ${lockedCourse ? `<button class="primary-btn" data-route="pricing">Unlock full path</button>` : `<button class="primary-btn" data-lesson="${nextLesson?.id || ""}">Продолжить</button>`}
           <button class="secondary-btn" data-certificate="${course.id}">Certificate preview</button>
         </div>
       </article>
-      <section class="mission-list">
+      <section class="mission-path" aria-label="${course.title} lesson path">
         ${lessons.map((lesson, index) => {
           const locked = lockedCourse || (!isPro() && user.dailyLessonsCompleted >= 5 && !completed.has(lesson.id));
-          return `<button class="mission-row ${completed.has(lesson.id) ? "done" : ""} ${locked ? "locked" : ""}" data-lesson="${lesson.id}">
-            <span class="node">${completed.has(lesson.id) ? "OK" : `0${index + 1}`}</span>
-            <span><strong>${lesson.title}</strong><small>${lesson.content}</small></span>
-            <span class="tag">${lesson.xp} XP</span>
+          const done = completed.has(lesson.id);
+          const boss = lesson.title.toLowerCase().includes("boss");
+          return `<button class="mission-node ${done ? "done" : ""} ${locked ? "locked" : ""} ${boss ? "boss" : ""}" data-lesson="${lesson.id}">
+            <span class="path-step">${done ? "OK" : `0${index + 1}`}</span>
+            <span class="mission-copy"><strong>${lesson.title}</strong><small>${lesson.content}</small></span>
+            <span class="mission-meta"><span class="tag">${lesson.xp} XP</span><span class="tag">${done ? "Done" : locked ? "Locked" : boss ? "Boss" : "Open"}</span></span>
           </button>`;
         }).join("")}
       </section>
