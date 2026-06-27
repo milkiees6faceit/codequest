@@ -6,6 +6,7 @@ const starterState = {
   authProvider: "demo",
   authUserId: "",
   email: "",
+  lang: "ru",
   plan: "free",
   trialDaysLeft: 7,
   xp: 2840,

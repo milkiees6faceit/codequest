@@ -32,21 +32,166 @@ let modal = "";
 let authBusy = false;
 
 const navItems = [
-  ["home", "Overview", "OV"],
-  ["courses", "Courses", "CR"],
-  ["course", "Learning Map", "MP"],
-  ["lesson", "Code Lab", "LB"],
-  ["profile", "Profile", "PR"],
-  ["leaderboard", "Leaderboard", "LD"],
-  ["projects", "Projects", "PJ"],
-  ["pricing", "Pricing", "UP"],
-  ["more", "Systems", "SY"],
+  ["home", "navHome", "OV"],
+  ["courses", "navCourses", "CR"],
+  ["course", "navMap", "MP"],
+  ["lesson", "navLab", "LB"],
+  ["profile", "navProfile", "PR"],
+  ["leaderboard", "navLeaderboard", "LD"],
+  ["projects", "navProjects", "PJ"],
+  ["pricing", "navPricing", "UP"],
+  ["more", "navSystems", "SY"],
 ];
 
 const publicRoutes = new Set(["home", "auth"]);
 
+const dictionary = {
+  ru: {
+    navHome: "Обзор",
+    navCourses: "Курсы",
+    navMap: "Карта",
+    navLab: "Code Lab",
+    navProfile: "Профиль",
+    navLeaderboard: "Рейтинг",
+    navProjects: "Проекты",
+    navPricing: "Тарифы",
+    navSystems: "Системы",
+    login: "Войти",
+    start: "Начать",
+    today: "Сегодня",
+    unlimitedPro: "Безлимитный Pro доступ",
+    freeLessons: "бесплатных уроков",
+    managePlan: "Управлять планом",
+    upgradeAccess: "Улучшить доступ",
+    coins: "монеты",
+    professionalSystem: "Профессиональная система обучения",
+    overview: "Обзор",
+    homeTitle: "Главная",
+    publicKicker: "Учись кодить через практику",
+    heroTitle: "Учись программировать через миссии, проекты и понятный прогресс",
+    heroText: "Современная платформа для изучения HTML, CSS, JavaScript, Python и C++: короткая теория, встроенный редактор, проверка решений, XP, проекты для портфолио и сертификаты.",
+    startFree: "Начать бесплатно",
+    viewCourses: "Посмотреть курсы",
+    directions: "5 направлений",
+    certificates: "Сертификаты",
+    benefits: "Преимущества",
+    benefitsTitle: "Не просто уроки, а система роста",
+    about: "О нас",
+    plans: "Планы",
+    courseCatalog: "Каталог курсов",
+    structuredPaths: "Структурированные пути",
+    unlockPro: "Открыть Pro",
+    progress: "Прогресс",
+    missions: "миссий",
+    proLocked: "Pro закрыт",
+    free: "Free",
+    openMap: "Открыть карту",
+    upgradeToOpen: "Улучшить",
+    learningMap: "Карта обучения",
+    missionPath: "путь миссий",
+    trackCompletion: "Прогресс трека",
+    xpPool: "XP всего",
+    availableReward: "Доступная награда",
+    status: "Статус",
+    locked: "Закрыто",
+    open: "Открыто",
+    access: "Доступ",
+    continue: "Продолжить",
+    certificatePreview: "Сертификат",
+    levels: "уровней",
+    done: "Готово",
+    boss: "Босс",
+    currentTrack: "Текущий трек",
+    dailyQuests: "Ежедневные задания",
+    commandCenter: "Центр обучения",
+    learningDashboard: "Дашборд обучения",
+    activeTier: "Текущий уровень",
+    streakDays: "Дней подряд",
+    earnedLearning: "За обучение",
+    currentPath: "Текущий путь",
+    langButton: "ENG",
+  },
+  en: {
+    navHome: "Overview",
+    navCourses: "Courses",
+    navMap: "Learning Map",
+    navLab: "Code Lab",
+    navProfile: "Profile",
+    navLeaderboard: "Leaderboard",
+    navProjects: "Projects",
+    navPricing: "Pricing",
+    navSystems: "Systems",
+    login: "Log in",
+    start: "Start",
+    today: "Today",
+    unlimitedPro: "Unlimited Pro access",
+    freeLessons: "free lessons",
+    managePlan: "Manage plan",
+    upgradeAccess: "Upgrade access",
+    coins: "coins",
+    professionalSystem: "Professional learning system",
+    overview: "Overview",
+    homeTitle: "Home",
+    publicKicker: "Learn to code by building",
+    heroTitle: "Learn programming through missions, projects, and clear progress",
+    heroText: "A modern platform for learning HTML, CSS, JavaScript, Python, and C++: short theory, built-in editor, solution checks, XP, portfolio projects, and certificates.",
+    startFree: "Start free",
+    viewCourses: "View courses",
+    directions: "5 paths",
+    certificates: "Certificates",
+    benefits: "Benefits",
+    benefitsTitle: "Not just lessons, but a growth system",
+    about: "About",
+    plans: "Plans",
+    courseCatalog: "Course Catalog",
+    structuredPaths: "Structured paths",
+    unlockPro: "Unlock Pro",
+    progress: "Progress",
+    missions: "missions",
+    proLocked: "Pro locked",
+    free: "Free",
+    openMap: "Open map",
+    upgradeToOpen: "Upgrade to open",
+    learningMap: "Learning Map",
+    missionPath: "mission path",
+    trackCompletion: "Track completion",
+    xpPool: "XP Pool",
+    availableReward: "Available reward",
+    status: "Status",
+    locked: "Locked",
+    open: "Open",
+    access: "Access",
+    continue: "Continue",
+    certificatePreview: "Certificate preview",
+    levels: "levels",
+    done: "Done",
+    boss: "Boss",
+    currentTrack: "Current track",
+    dailyQuests: "Daily quests",
+    commandCenter: "Command Center",
+    learningDashboard: "Learning dashboard",
+    activeTier: "Active learning tier",
+    streakDays: "Days in a row",
+    earnedLearning: "Earned by learning",
+    currentPath: "Current path",
+    langButton: "RU",
+  },
+};
+
 function state() {
   return loadState();
+}
+
+function lang() {
+  return state().lang === "en" ? "en" : "ru";
+}
+
+function t(key) {
+  return dictionary[lang()][key] || dictionary.en[key] || key;
+}
+
+function langToggle() {
+  return `<button class="lang-toggle" data-toggle-lang aria-label="Switch language">${lang() === "ru" ? "RU" : "EN"} / ${t("langButton")}</button>`;
 }
 
 function isRegistered() {
@@ -97,18 +242,25 @@ function setRoute(next) {
   render();
 }
 
+function toggleLanguage() {
+  updateState((s) => ({ ...s, lang: lang() === "ru" ? "en" : "ru" }));
+  document.documentElement.lang = lang();
+  render();
+}
+
 function publicShell(content, meta = {}) {
   return `
     <div class="public-shell">
       <main class="workspace">
         <header class="workspace-top">
           <div>
-            <span class="mini-label">${meta.kicker || "Learn to code by building"}</span>
-            <h1>${meta.title || "Главная"}</h1>
+            <span class="mini-label">${meta.kicker || t("publicKicker")}</span>
+            <h1>${meta.title || t("homeTitle")}</h1>
           </div>
           <div class="account-strip">
-            <button class="secondary-btn compact" data-route="auth">Войти</button>
-            <button class="primary-btn compact" data-route="auth">Начать</button>
+            ${langToggle()}
+            <button class="secondary-btn compact" data-route="auth">${t("login")}</button>
+            <button class="primary-btn compact" data-route="auth">${t("start")}</button>
           </div>
         </header>
         ${toast ? `<div class="toast">${toast}</div>` : ""}
@@ -131,28 +283,29 @@ function shell(content, meta = {}) {
         <nav class="side-nav" aria-label="Primary navigation">
           ${navItems.map(([id, label, icon]) => `
             <button class="${route === id ? "active" : ""}" data-route="${id}">
-              <span>${icon}</span><strong>${label}</strong>
+              <span>${icon}</span><strong>${t(label)}</strong>
             </button>
           `).join("")}
         </nav>
         <section class="sidebar-card">
-          <span class="mini-label">Today</span>
-          <strong>${isPro() ? "Unlimited Pro access" : `${user.dailyLessonsCompleted}/5 free lessons`}</strong>
+          <span class="mini-label">${t("today")}</span>
+          <strong>${isPro() ? t("unlimitedPro") : `${user.dailyLessonsCompleted}/5 ${t("freeLessons")}`}</strong>
           <div class="progress" style="--value:${isPro() ? 100 : Math.min(100, user.dailyLessonsCompleted * 20)}%"><span></span></div>
-          <button class="secondary-btn compact" data-route="pricing">${isPro() ? "Manage plan" : "Upgrade access"}</button>
+          <button class="secondary-btn compact" data-route="pricing">${isPro() ? t("managePlan") : t("upgradeAccess")}</button>
         </section>
       </aside>
 
       <main class="workspace">
         <header class="workspace-top">
           <div>
-            <span class="mini-label">${meta.kicker || "Professional learning system"}</span>
-            <h1>${meta.title || "Overview"}</h1>
+            <span class="mini-label">${meta.kicker || t("professionalSystem")}</span>
+            <h1>${meta.title || t("overview")}</h1>
           </div>
           <div class="account-strip">
-            <button class="plan-badge" data-route="pricing">${isPro() ? "Pro" : "Free"}</button>
+            ${langToggle()}
+            <button class="plan-badge" data-route="pricing">${isPro() ? "Pro" : t("free")}</button>
             <div class="metric-pill"><strong>${user.xp}</strong><span>XP</span></div>
-            <div class="metric-pill"><strong>${user.coins}</strong><span>coins</span></div>
+            <div class="metric-pill"><strong>${user.coins}</strong><span>${t("coins")}</span></div>
             <button class="avatar" data-route="profile">${user.username.slice(0, 2).toUpperCase()}</button>
           </div>
         </header>
@@ -190,17 +343,17 @@ function home() {
     </section>
 
     <section class="insight-grid">
-      ${statCard("Level", user.level, "Active learning tier")}
-      ${statCard("Streak", user.streak, "Days in a row")}
-      ${statCard("Coins", user.coins, "Earned by learning")}
-      ${statCard(active.language, `${courseProgress(active)}%`, "Current path")}
+      ${statCard("Level", user.level, t("activeTier"))}
+      ${statCard("Streak", user.streak, t("streakDays"))}
+      ${statCard(t("coins"), user.coins, t("earnedLearning"))}
+      ${statCard(active.language, `${courseProgress(active)}%`, t("currentPath"))}
     </section>
 
     <section class="split-layout">
       <article class="panel focus-panel">
         <div class="section-head">
-          <div><span class="mini-label">Current track</span><h2>${active.title}</h2></div>
-          <button class="secondary-btn compact" data-route="course">Open map</button>
+          <div><span class="mini-label">${t("currentTrack")}</span><h2>${active.title}</h2></div>
+          <button class="secondary-btn compact" data-route="course">${t("openMap")}</button>
         </div>
         <p class="muted">${active.description}</p>
         <div class="track-strip">
@@ -208,13 +361,13 @@ function home() {
         </div>
       </article>
       <article class="panel">
-        <span class="mini-label">Daily quests</span>
+        <span class="mini-label">${t("dailyQuests")}</span>
         <div class="process-list">
           ${dailyQuests.map((quest) => questRow(quest)).join("")}
         </div>
       </article>
     </section>
-  `, { title: "Command Center", kicker: "Learning dashboard" });
+  `, { title: t("commandCenter"), kicker: t("learningDashboard") });
 }
 
 function questRow(quest) {
@@ -236,17 +389,17 @@ function publicHome() {
     <section class="landing-hero">
       <div class="landing-copy">
         <span class="mini-label">CodeQuest Academy</span>
-        <h2>Учись программировать через миссии, проекты и понятный прогресс</h2>
-        <p>Современная платформа для изучения HTML, CSS, JavaScript, Python и C++: короткая теория, встроенный редактор, проверка решений, XP, проекты для портфолио и сертификаты.</p>
+        <h2>${t("heroTitle")}</h2>
+        <p>${t("heroText")}</p>
         <div class="actions">
-          <button class="primary-btn" data-route="auth">Начать бесплатно</button>
-          <button class="secondary-btn" data-route="courses">Посмотреть курсы</button>
+          <button class="primary-btn" data-route="auth">${t("startFree")}</button>
+          <button class="secondary-btn" data-route="courses">${t("viewCourses")}</button>
         </div>
         <div class="landing-trust">
-          <span>5 направлений</span>
+          <span>${t("directions")}</span>
           <span>Code Lab</span>
           <span>Free + Pro</span>
-          <span>Сертификаты</span>
+          <span>${t("certificates")}</span>
         </div>
       </div>
       <div class="landing-product">
@@ -262,8 +415,8 @@ function publicHome() {
 
     <section class="landing-section">
       <div class="landing-section-head">
-        <span class="mini-label">Преимущества</span>
-        <h2>Не просто уроки, а система роста</h2>
+        <span class="mini-label">${t("benefits")}</span>
+        <h2>${t("benefitsTitle")}</h2>
       </div>
       <div class="benefit-grid">
         ${benefitCard("Практика с первого экрана", "Каждая тема сразу закрепляется задачей в редакторе кода.")}
@@ -275,7 +428,7 @@ function publicHome() {
 
     <section class="landing-section split-layout">
       <article class="panel about-panel">
-        <span class="mini-label">О нас</span>
+        <span class="mini-label">${t("about")}</span>
         <h2>Мы делаем обучение программированию похожим на рабочий продукт</h2>
         <p>CodeQuest Academy создан для тех, кто хочет учиться без скучных лекций и хаотичных туториалов. Мы соединяем структуру курса, игровой прогресс и реальные задания, чтобы новичок понимал, что делать сегодня и куда двигаться дальше.</p>
         <button class="primary-btn" data-route="auth">Создать аккаунт</button>
@@ -292,7 +445,7 @@ function publicHome() {
 
     <section class="landing-section">
       <div class="landing-section-head">
-        <span class="mini-label">Планы</span>
+        <span class="mini-label">${t("plans")}</span>
         <h2>Начни бесплатно, расширяйся когда готов</h2>
       </div>
       <div class="landing-plan-grid">
@@ -301,7 +454,7 @@ function publicHome() {
         ${landingPlan("Pro Yearly", "$90", "Все из Monthly, экономия $30, Pro badge и ранний доступ к новым функциям.", "Выбрать Yearly", "pricing")}
       </div>
     </section>
-  `, { title: "Главная", kicker: "Learn to code by building" });
+  `, { title: t("homeTitle"), kicker: t("publicKicker") });
 }
 
 function benefitCard(title, text) {
@@ -324,12 +477,12 @@ function coursesView() {
       <div class="filters">
         ${["All", "Frontend", "Backend", "GameDev", "Beginner", "Advanced"].map((item) => `<button class="${filter === item ? "active" : ""}" data-filter="${item}">${item}</button>`).join("")}
       </div>
-      <button class="primary-btn compact" data-route="pricing">Unlock Pro</button>
+      <button class="primary-btn compact" data-route="pricing">${t("unlockPro")}</button>
     </section>
     <section class="course-grid">
       ${visible.map(courseCard).join("")}
     </section>
-  `, { title: "Course Catalog", kicker: "Structured paths" });
+  `, { title: t("courseCatalog"), kicker: t("structuredPaths") });
 }
 
 function courseCard(course) {
@@ -343,18 +496,18 @@ function courseCard(course) {
       <div class="course-body">
         <div class="row-between">
           <h2>${course.title}</h2>
-          <span class="tag">${locked ? "Pro locked" : course.pro ? "Pro" : "Free"}</span>
+          <span class="tag">${locked ? t("proLocked") : course.pro ? "Pro" : t("free")}</span>
         </div>
         <p>${course.description}</p>
         <div class="tag-list">
           <span class="tag">${course.track}</span>
           <span class="tag">${course.difficulty}</span>
-          <span class="tag">${getLessons(course.id).length} missions</span>
+          <span class="tag">${getLessons(course.id).length} ${t("missions")}</span>
           <span class="tag">${course.xp} XP</span>
         </div>
-        <div class="row-between"><span class="muted">Progress</span><strong>${courseProgress(course)}%</strong></div>
+        <div class="row-between"><span class="muted">${t("progress")}</span><strong>${courseProgress(course)}%</strong></div>
         <div class="progress" style="--value:${courseProgress(course)}%"><span></span></div>
-        <button class="${locked ? "primary-btn" : "secondary-btn"} compact" data-open-course="${course.id}">${locked ? "Upgrade to open" : "Open learning map"}</button>
+        <button class="${locked ? "primary-btn" : "secondary-btn"} compact" data-open-course="${course.id}">${locked ? t("upgradeToOpen") : t("openMap")}</button>
       </div>
     </article>
   `;
@@ -367,6 +520,9 @@ function courseDetail() {
   const completed = new Set(user.completedLessons);
   const lockedCourse = course.pro && !isPro();
   const nextLesson = lessons.find((lesson) => !completed.has(lesson.id)) || lessons[0];
+  const primaryCourseAction = lockedCourse
+    ? `<button class="primary-btn" data-route="pricing">${t("unlockPro")}</button>`
+    : `<button class="primary-btn" data-lesson="${nextLesson?.id || ""}">${t("continue")}</button>`;
   const renderMissionNode = (lesson, index) => {
     const locked = lockedCourse || (!isPro() && user.dailyLessonsCompleted >= 5 && !completed.has(lesson.id));
     const done = completed.has(lesson.id);
@@ -374,7 +530,7 @@ function courseDetail() {
     return `<button class="mission-node ${done ? "done" : ""} ${locked ? "locked" : ""} ${boss ? "boss" : ""}" data-lesson="${lesson.id}">
       <span class="path-step">${done ? "OK" : `0${index + 1}`}</span>
       <span class="mission-copy"><strong>${lesson.title}</strong><small>${lesson.content}</small></span>
-      <span class="mission-meta"><span class="tag">${lesson.xp} XP</span><span class="tag">${done ? "Done" : locked ? "Locked" : boss ? "Boss" : "Open"}</span></span>
+      <span class="mission-meta"><span class="tag">${lesson.xp} XP</span><span class="tag">${done ? t("done") : locked ? t("locked") : boss ? t("boss") : t("open")}</span></span>
     </button>`;
   };
   const unitMap = course.units?.map((unit, unitIndex) => {
@@ -384,7 +540,7 @@ function courseDetail() {
     return `<article class="path-unit">
       <div class="path-unit-head">
         <span class="unit-index">${String(unitIndex + 1).padStart(2, "0")}</span>
-        <div><span class="mini-label">${completeCount}/${unitLessons.length} levels</span><h3>${unit.title}</h3></div>
+        <div><span class="mini-label">${completeCount}/${unitLessons.length} ${t("levels")}</span><h3>${unit.title}</h3></div>
       </div>
       <div class="unit-levels">
         ${unitLessons.map((lesson, levelIndex) => renderMissionNode(lesson, firstLessonIndex + levelIndex)).join("")}
@@ -395,23 +551,23 @@ function courseDetail() {
     <section class="split-layout wide-left">
       <article class="panel course-hero">
         <span class="mini-label">${course.title}</span>
-        <h2>${course.language} mission path</h2>
+        <h2>${course.language} ${t("missionPath")}</h2>
         <p>${course.description} ${lockedCourse ? "Этот трек доступен на Pro." : "Открой миссию, реши задачу в Code Lab и забери XP."}</p>
         <div class="insight-grid compact-grid">
-          ${statCard("Progress", `${courseProgress(course)}%`, "Track completion")}
-          ${statCard("XP Pool", course.xp, "Available reward")}
-          ${statCard("Status", lockedCourse ? "Locked" : "Open", "Access")}
+          ${statCard(t("progress"), `${courseProgress(course)}%`, t("trackCompletion"))}
+          ${statCard(t("xpPool"), course.xp, t("availableReward"))}
+          ${statCard(t("status"), lockedCourse ? t("locked") : t("open"), t("access"))}
         </div>
         <div class="actions">
-          ${lockedCourse ? `<button class="primary-btn" data-route="pricing">Unlock full path</button>` : `<button class="primary-btn" data-lesson="${nextLesson?.id || ""}">Продолжить</button>`}
-          <button class="secondary-btn" data-certificate="${course.id}">Certificate preview</button>
+          ${primaryCourseAction}
+          <button class="secondary-btn" data-certificate="${course.id}">${t("certificatePreview")}</button>
         </div>
       </article>
       <section class="mission-path" aria-label="${course.title} lesson path">
         ${unitMap || lessons.map(renderMissionNode).join("")}
       </section>
     </section>
-  `, { title: "Learning Map", kicker: `${course.language} track` });
+  `, { title: t("learningMap"), kicker: `${course.language} track` });
 }
 
 function lessonView() {
@@ -649,12 +805,14 @@ function certificateCopy() {
 function render() {
   const views = { home: isRegistered() ? home : publicHome, courses: coursesView, course: courseDetail, lesson: lessonView, profile: profileView, leaderboard: leaderboardView, projects: projectsView, pricing: pricingView, auth: authView, more: moreView };
   if (!isRegistered() && !publicRoutes.has(route)) route = "auth";
+  document.documentElement.lang = lang();
   app.innerHTML = views[route]();
   bindEvents();
 }
 
 function bindEvents() {
   app.querySelectorAll("[data-route]").forEach((el) => el.addEventListener("click", () => setRoute(el.dataset.route)));
+  app.querySelectorAll("[data-toggle-lang]").forEach((el) => el.addEventListener("click", toggleLanguage));
   app.querySelectorAll("[data-filter]").forEach((el) => el.addEventListener("click", () => { filter = el.dataset.filter; render(); }));
   app.querySelectorAll("[data-open-course]").forEach((el) => el.addEventListener("click", () => openCourse(el.dataset.openCourse)));
   app.querySelectorAll("[data-lesson]").forEach((el) => el.addEventListener("click", () => openLesson(el.dataset.lesson)));
