@@ -367,6 +367,30 @@ function courseDetail() {
   const completed = new Set(user.completedLessons);
   const lockedCourse = course.pro && !isPro();
   const nextLesson = lessons.find((lesson) => !completed.has(lesson.id)) || lessons[0];
+  const renderMissionNode = (lesson, index) => {
+    const locked = lockedCourse || (!isPro() && user.dailyLessonsCompleted >= 5 && !completed.has(lesson.id));
+    const done = completed.has(lesson.id);
+    const boss = lesson.title.toLowerCase().includes("boss");
+    return `<button class="mission-node ${done ? "done" : ""} ${locked ? "locked" : ""} ${boss ? "boss" : ""}" data-lesson="${lesson.id}">
+      <span class="path-step">${done ? "OK" : `0${index + 1}`}</span>
+      <span class="mission-copy"><strong>${lesson.title}</strong><small>${lesson.content}</small></span>
+      <span class="mission-meta"><span class="tag">${lesson.xp} XP</span><span class="tag">${done ? "Done" : locked ? "Locked" : boss ? "Boss" : "Open"}</span></span>
+    </button>`;
+  };
+  const unitMap = course.units?.map((unit, unitIndex) => {
+    const unitLessons = unit.lessons.map((id) => lessons.find((lesson) => lesson.id === id)).filter(Boolean);
+    const completeCount = unitLessons.filter((lesson) => completed.has(lesson.id)).length;
+    const firstLessonIndex = lessons.findIndex((lesson) => lesson.id === unitLessons[0]?.id);
+    return `<article class="path-unit">
+      <div class="path-unit-head">
+        <span class="unit-index">${String(unitIndex + 1).padStart(2, "0")}</span>
+        <div><span class="mini-label">${completeCount}/${unitLessons.length} levels</span><h3>${unit.title}</h3></div>
+      </div>
+      <div class="unit-levels">
+        ${unitLessons.map((lesson, levelIndex) => renderMissionNode(lesson, firstLessonIndex + levelIndex)).join("")}
+      </div>
+    </article>`;
+  }).join("");
   return shell(`
     <section class="split-layout wide-left">
       <article class="panel course-hero">
@@ -384,16 +408,7 @@ function courseDetail() {
         </div>
       </article>
       <section class="mission-path" aria-label="${course.title} lesson path">
-        ${lessons.map((lesson, index) => {
-          const locked = lockedCourse || (!isPro() && user.dailyLessonsCompleted >= 5 && !completed.has(lesson.id));
-          const done = completed.has(lesson.id);
-          const boss = lesson.title.toLowerCase().includes("boss");
-          return `<button class="mission-node ${done ? "done" : ""} ${locked ? "locked" : ""} ${boss ? "boss" : ""}" data-lesson="${lesson.id}">
-            <span class="path-step">${done ? "OK" : `0${index + 1}`}</span>
-            <span class="mission-copy"><strong>${lesson.title}</strong><small>${lesson.content}</small></span>
-            <span class="mission-meta"><span class="tag">${lesson.xp} XP</span><span class="tag">${done ? "Done" : locked ? "Locked" : boss ? "Boss" : "Open"}</span></span>
-          </button>`;
-        }).join("")}
+        ${unitMap || lessons.map(renderMissionNode).join("")}
       </section>
     </section>
   `, { title: "Learning Map", kicker: `${course.language} track` });

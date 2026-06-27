@@ -12,6 +12,15 @@ export const courses = [
     progress: 10,
     pro: false,
     description: "Build pages from real semantic blocks while opening new parts of the island map.",
+    units: [
+      { title: "Block 1: Document Setup", lessons: ["html-1", "html-2", "html-3"] },
+      { title: "Block 2: Page Identity", lessons: ["html-4", "html-5", "html-6"] },
+      { title: "Block 3: Text and Links", lessons: ["html-7", "html-8", "html-9"] },
+      { title: "Block 4: Lists and Semantics", lessons: ["html-10", "html-11", "html-12"] },
+      { title: "Block 5: Navigation and Content", lessons: ["html-13", "html-14", "html-15"] },
+      { title: "Block 6: Forms and Accessibility", lessons: ["html-16", "html-17", "html-18"] },
+      { title: "Final Block: Media and Portfolio", lessons: ["html-19", "html-20"] },
+    ],
   },
   {
     id: "css-galaxy",
