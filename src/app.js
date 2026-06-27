@@ -9,7 +9,16 @@ import {
   tutorPrompts,
 } from "./data/demoCourses.js";
 import { checkAnswer } from "./lib/codeChecker.js";
-import { loadState, resetState, updateState } from "./store/userStore.js";
+import {
+  getCurrentSession,
+  isSupabaseConfigured,
+  loadRemoteProfile,
+  saveRemoteProfile,
+  signInWithPassword,
+  signOutSupabase,
+  signUpWithPassword,
+} from "./lib/supabaseClient.js";
+import { loadState, mergeState, resetState, updateState } from "./store/userStore.js";
 
 const app = document.querySelector("#app");
 
@@ -20,6 +29,7 @@ let selectedLesson = getLessons(selectedCourseId)[0] || htmlLessons[0];
 let code = selectedLesson.starterCode;
 let toast = "";
 let modal = "";
+let authBusy = false;
 
 const navItems = [
   ["home", "Overview", "OV"],
@@ -41,6 +51,13 @@ function state() {
 
 function isRegistered() {
   return Boolean(state().isRegistered);
+}
+
+function currentAuthStatus() {
+  const user = state();
+  if (user.authProvider === "supabase" && user.email) return `Supabase: ${user.email}`;
+  if (!isSupabaseConfigured()) return "Supabase не настроен";
+  return "Supabase готов";
 }
 
 function isPro() {
@@ -450,6 +467,7 @@ function profileView() {
         <p>${isPro() ? "Pro member" : "Free learner with Pro Trial ready"}</p>
         <button class="primary-btn" data-claim-reward>${user.dailyRewardClaimed ? "Reward claimed" : "Claim daily reward"}</button>
         <button class="secondary-btn profile-action" data-export-progress>Export progress</button>
+        <button class="secondary-btn profile-action" data-logout>Log out</button>
         <button class="ghost-btn profile-action" data-reset-progress>Reset demo progress</button>
       </article>
       <article class="panel">
@@ -508,23 +526,39 @@ function projectRow(project, user) {
 }
 
 function authView() {
+  const configured = isSupabaseConfigured();
+  const busy = authBusy ? "disabled" : "";
   return publicShell(`
+    <section class="panel auth-status-panel">
+      <div>
+        <span class="mini-label">Supabase Auth</span>
+        <h2>${currentAuthStatus()}</h2>
+        <p class="muted">${configured ? "Email/password registration is connected. After login the dashboard navigation appears." : "Add Supabase URL and anon/publishable key in index.html or localStorage; the forms will start working without code changes."}</p>
+      </div>
+      <span class="tag">${configured ? "Connected" : "Setup needed"}</span>
+    </section>
     <section class="split-layout">
       <article class="panel">
         <span class="mini-label">Login</span>
-        <h2>Continue learning</h2>
-        <p class="muted">Guest mode works instantly. In guest mode progress is saved only on this device.</p>
-        <div class="actions">
-          <button class="primary-btn" data-login-demo>Continue as ${state().username}</button>
-          <button class="secondary-btn" data-route="home">Guest mode</button>
+        <h2>Sign in</h2>
+        <p class="muted">Supabase keeps the session in this browser and unlocks the learning workspace.</p>
+        <div class="auth-form">
+          <label>Email<input class="input" data-login-email type="email" autocomplete="email" placeholder="you@example.com" /></label>
+          <label>Password<input class="input" data-login-password type="password" autocomplete="current-password" placeholder="password" /></label>
+          <button class="primary-btn" data-login-supabase ${busy}>Sign in</button>
+          <button class="secondary-btn" data-login-demo ${busy}>Demo login: ${state().username}</button>
         </div>
       </article>
       <article class="panel">
         <span class="mini-label">Register</span>
-        <h2>Start with Pro Trial</h2>
-        <p class="muted">New accounts get 7 days of Pro access for unlimited lessons, projects, and certificates.</p>
-        <input class="input" aria-label="Username" placeholder="username" />
-        <button class="primary-btn auth-save" data-save-username>Save username</button>
+        <h2>Create account</h2>
+        <p class="muted">The account is created in Supabase Auth, then profile and progress are saved in the profiles table.</p>
+        <div class="auth-form">
+          <label>Username<input class="input" data-register-username autocomplete="username" placeholder="NovaCoder" /></label>
+          <label>Email<input class="input" data-register-email type="email" autocomplete="email" placeholder="you@example.com" /></label>
+          <label>Password<input class="input" data-register-password type="password" autocomplete="new-password" placeholder="minimum 6 characters" /></label>
+          <button class="primary-btn auth-save" data-register-supabase ${busy}>Create account</button>
+        </div>
       </article>
     </section>
   `, { title: "Регистрация", kicker: "Access and guest mode" });
@@ -653,6 +687,15 @@ function bindEvents() {
   const demoLogin = app.querySelector("[data-login-demo]");
   if (demoLogin) demoLogin.addEventListener("click", continueDemoAccount);
 
+  const supabaseLogin = app.querySelector("[data-login-supabase]");
+  if (supabaseLogin) supabaseLogin.addEventListener("click", loginWithSupabase);
+
+  const supabaseRegister = app.querySelector("[data-register-supabase]");
+  if (supabaseRegister) supabaseRegister.addEventListener("click", registerWithSupabase);
+
+  const logout = app.querySelector("[data-logout]");
+  if (logout) logout.addEventListener("click", logoutAccount);
+
   const copyReferral = app.querySelector("[data-copy-referral]");
   if (copyReferral) copyReferral.addEventListener("click", () => { toast = `Referral copied: codequest.app/ref/${state().username}`; setRoute("more"); });
 }
@@ -725,6 +768,7 @@ function completeLesson() {
       certificates: courseFinished && !s.certificates.includes(course.title) ? [...s.certificates, course.title] : s.certificates,
     };
   });
+  syncCurrentProfile();
   toast = `Mission complete: +${selectedLesson.xp} XP, coins added, progress saved locally.`;
   render();
 }
@@ -762,6 +806,7 @@ function submitProject(projectId) {
       earnedBadges: s.earnedBadges.includes("Project Shipper") ? s.earnedBadges : [...s.earnedBadges, "Project Shipper"],
     };
   });
+  syncCurrentProfile();
   toast = `Project submitted: +${project.xp} XP and coins awarded.`;
   render();
 }
@@ -777,6 +822,7 @@ function buyItem(itemId) {
     return;
   }
   updateState((s) => ({ ...s, coins: s.coins - item.price, purchasedItems: [...s.purchasedItems, item.id] }));
+  syncCurrentProfile();
   toast = `${item.title} purchased.`;
   render();
 }
@@ -801,6 +847,7 @@ function claimDailyReward() {
     return;
   }
   updateState((s) => ({ ...s, xp: s.xp + 50, coins: s.coins + 25, dailyRewardClaimed: true }));
+  syncCurrentProfile();
   toast = "Daily reward claimed: +50 XP and +25 coins.";
   render();
 }
@@ -819,9 +866,120 @@ function saveUsernameFromInput() {
 }
 
 function continueDemoAccount() {
-  updateState((s) => ({ ...s, isRegistered: true }));
+  updateState((s) => ({ ...s, isRegistered: true, authProvider: "demo" }));
   toast = "Welcome back.";
   setRoute("courses");
+}
+
+async function loginWithSupabase() {
+  const email = app.querySelector("[data-login-email]")?.value.trim();
+  const password = app.querySelector("[data-login-password]")?.value;
+  if (!email || !password) {
+    toast = "Enter email and password.";
+    render();
+    return;
+  }
+  await runAuthAction(async () => {
+    const { session, user } = await signInWithPassword({ email, password });
+    await activateSupabaseUser(session?.user || user);
+    toast = "Signed in with Supabase.";
+    setRoute("courses");
+  });
+}
+
+async function registerWithSupabase() {
+  const username = app.querySelector("[data-register-username]")?.value.trim();
+  const email = app.querySelector("[data-register-email]")?.value.trim();
+  const password = app.querySelector("[data-register-password]")?.value;
+  if (!username || !email || !password) {
+    toast = "Enter username, email, and password.";
+    render();
+    return;
+  }
+  if (password.length < 6) {
+    toast = "Password must be at least 6 characters.";
+    render();
+    return;
+  }
+  await runAuthAction(async () => {
+    const { session, user } = await signUpWithPassword({ email, password, username });
+    if (!session && user) {
+      toast = "Account created. Check email confirmation, then sign in.";
+      render();
+      return;
+    }
+    await activateSupabaseUser(session?.user || user, username);
+    toast = "Account created with Supabase.";
+    setRoute("courses");
+  });
+}
+
+async function logoutAccount() {
+  authBusy = true;
+  render();
+  try {
+    await signOutSupabase();
+    mergeState({ isRegistered: false, authProvider: "demo", authUserId: "", email: "" });
+    route = "home";
+    toast = "";
+    render();
+  } catch (error) {
+    toast = error.message || "Could not log out.";
+    render();
+  } finally {
+    authBusy = false;
+  }
+}
+
+async function runAuthAction(action) {
+  if (!isSupabaseConfigured()) {
+    toast = "Supabase URL/key are not configured yet.";
+    render();
+    return;
+  }
+  authBusy = true;
+  render();
+  try {
+    await action();
+  } catch (error) {
+    toast = error.message || "Supabase auth error.";
+    render();
+  } finally {
+    authBusy = false;
+    render();
+  }
+}
+
+async function activateSupabaseUser(sessionUser, fallbackUsername = "") {
+  if (!sessionUser) throw new Error("Supabase did not return a user session.");
+  let remoteProfile = null;
+  try {
+    remoteProfile = await loadRemoteProfile(sessionUser.id);
+  } catch (error) {
+    toast = error.message;
+  }
+  const remoteProgress = remoteProfile?.progress || {};
+  const username = remoteProfile?.username || fallbackUsername || sessionUser.user_metadata?.username || sessionUser.email?.split("@")[0] || "CodeQuestUser";
+  mergeState({
+    ...remoteProgress,
+    username,
+    plan: remoteProfile?.plan || state().plan,
+    isRegistered: true,
+    authProvider: "supabase",
+    authUserId: sessionUser.id,
+    email: sessionUser.email || "",
+  });
+  await syncCurrentProfile(sessionUser);
+}
+
+async function syncCurrentProfile(sessionUser = null) {
+  const user = state();
+  if (user.authProvider !== "supabase") return;
+  try {
+    await saveRemoteProfile(user, sessionUser || { id: user.authUserId, email: user.email });
+  } catch (error) {
+    toast = error.message || "Could not sync profile.";
+  }
 }
 
 function exportProgressSnapshot() {
@@ -847,4 +1005,19 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;");
 }
 
-render();
+async function initApp() {
+  if (isSupabaseConfigured()) {
+    try {
+      const session = await getCurrentSession();
+      if (session?.user) {
+        await activateSupabaseUser(session.user);
+        route = "courses";
+      }
+    } catch (error) {
+      toast = error.message || "Could not restore Supabase session.";
+    }
+  }
+  render();
+}
+
+initApp();

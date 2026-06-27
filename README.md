@@ -19,3 +19,11 @@ Expected Pages URL:
 ```text
 https://milkiees6faceit.github.io/codequest/
 ```
+
+## Supabase Auth
+
+1. Open `supabase/schema.sql` in the Supabase SQL Editor and run it once.
+2. In `index.html`, fill `window.CODEQUEST_SUPABASE.url` and `window.CODEQUEST_SUPABASE.key` with your project URL and public anon/publishable key.
+3. Enable Email auth in Supabase Authentication settings.
+
+Only public browser keys belong in `index.html`. Never put a service-role key in this static app.

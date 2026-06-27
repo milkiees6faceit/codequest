@@ -3,6 +3,9 @@ const storageKey = "codequest-academy-state";
 const starterState = {
   username: "NovaCoder",
   isRegistered: false,
+  authProvider: "demo",
+  authUserId: "",
+  email: "",
   plan: "free",
   trialDaysLeft: 7,
   xp: 2840,
@@ -51,6 +54,12 @@ export function saveState(state) {
 
 export function updateState(mutator) {
   const next = mutator(loadState());
+  saveState(next);
+  return next;
+}
+
+export function mergeState(patch) {
+  const next = { ...loadState(), ...patch };
   saveState(next);
   return next;
 }
