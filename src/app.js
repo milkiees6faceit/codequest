@@ -187,6 +187,92 @@ function statCard(label, value, detail) {
   return `<article class="stat-card"><span>${label}</span><strong>${value}</strong><p>${detail}</p></article>`;
 }
 
+function publicHome() {
+  return shell(`
+    <section class="landing-hero">
+      <div class="landing-copy">
+        <span class="mini-label">CodeQuest Academy</span>
+        <h2>Учись программировать через миссии, проекты и понятный прогресс</h2>
+        <p>Современная платформа для изучения HTML, CSS, JavaScript, Python и C++: короткая теория, встроенный редактор, проверка решений, XP, проекты для портфолио и сертификаты.</p>
+        <div class="actions">
+          <button class="primary-btn" data-route="auth">Начать бесплатно</button>
+          <button class="secondary-btn" data-route="courses">Посмотреть курсы</button>
+        </div>
+        <div class="landing-trust">
+          <span>5 направлений</span>
+          <span>Code Lab</span>
+          <span>Free + Pro</span>
+          <span>Сертификаты</span>
+        </div>
+      </div>
+      <div class="landing-product">
+        <div class="window-bar"><span></span><span></span><span></span><strong>${selectedLesson.id}</strong></div>
+        <pre><code>${escapeHtml(selectedLesson.starterCode)}</code></pre>
+        <div class="preview-status">
+          <span class="status-dot"></span>
+          <strong>Code check ready</strong>
+          <span class="tag">+${selectedLesson.xp} XP</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-section">
+      <div class="landing-section-head">
+        <span class="mini-label">Преимущества</span>
+        <h2>Не просто уроки, а система роста</h2>
+      </div>
+      <div class="benefit-grid">
+        ${benefitCard("Практика с первого экрана", "Каждая тема сразу закрепляется задачей в редакторе кода.")}
+        ${benefitCard("Игровой прогресс без детскости", "XP, streak, coins и badges помогают видеть движение, но интерфейс остается профессиональным.")}
+        ${benefitCard("Проекты для портфолио", "После глав открываются мини-проекты: лендинг, анимации, todo app, калькулятор и dashboard.")}
+        ${benefitCard("AI Tutor и подсказки", "Наставник помогает понять ошибку и дает подсказку, не раскрывая ответ сразу.")}
+      </div>
+    </section>
+
+    <section class="landing-section split-layout">
+      <article class="panel about-panel">
+        <span class="mini-label">О нас</span>
+        <h2>Мы делаем обучение программированию похожим на рабочий продукт</h2>
+        <p>CodeQuest Academy создан для тех, кто хочет учиться без скучных лекций и хаотичных туториалов. Мы соединяем структуру курса, игровой прогресс и реальные задания, чтобы новичок понимал, что делать сегодня и куда двигаться дальше.</p>
+        <button class="primary-btn" data-route="auth">Создать аккаунт</button>
+      </article>
+      <article class="panel">
+        <span class="mini-label">Как это работает</span>
+        <div class="process-list">
+          ${["Выбираешь трек", "Проходишь короткую миссию", "Пишешь код в Code Lab", "Получаешь XP и открываешь проект"].map((item, index) => `
+            <div><strong>0${index + 1}</strong><span>${item}<small>${index === 3 ? "Проекты идут в портфолио" : "Без лишней теории"}</small></span></div>
+          `).join("")}
+        </div>
+      </article>
+    </section>
+
+    <section class="landing-section">
+      <div class="landing-section-head">
+        <span class="mini-label">Планы</span>
+        <h2>Начни бесплатно, расширяйся когда готов</h2>
+      </div>
+      <div class="landing-plan-grid">
+        ${landingPlan("Free", "$0", "5 уроков в день, все языки в каталоге, XP, рейтинг и базовые проекты.", "Начать", "auth")}
+        ${landingPlan("Pro Monthly", "$10", "Без лимитов, полные курсы, все проекты, сертификаты и приоритетные обновления.", "Открыть Pro", "pricing")}
+        ${landingPlan("Pro Yearly", "$90", "Все из Monthly, экономия $30, Pro badge и ранний доступ к новым функциям.", "Выбрать Yearly", "pricing")}
+      </div>
+    </section>
+  `, { title: "Главная", kicker: "Learn to code by building" });
+}
+
+function benefitCard(title, text) {
+  return `<article class="panel benefit-card"><h3>${title}</h3><p class="muted">${text}</p></article>`;
+}
+
+function landingPlan(title, price, text, button, target) {
+  return `<article class="price-card landing-plan">
+    <span class="mini-label">${title}</span>
+    <div class="price">${price}</div>
+    <p class="muted">${text}</p>
+    <button class="${title === "Free" ? "secondary-btn" : "primary-btn"}" data-route="${target}">${button}</button>
+  </article>`;
+}
+
 function coursesView() {
   const visible = filter === "All" ? courses : courses.filter((course) => [course.track, course.difficulty].includes(filter));
   return shell(`
@@ -482,7 +568,7 @@ function certificateCopy() {
 }
 
 function render() {
-  const views = { home, courses: coursesView, course: courseDetail, lesson: lessonView, profile: profileView, leaderboard: leaderboardView, projects: projectsView, pricing: pricingView, auth: authView, more: moreView };
+  const views = { home: publicHome, courses: coursesView, course: courseDetail, lesson: lessonView, profile: profileView, leaderboard: leaderboardView, projects: projectsView, pricing: pricingView, auth: authView, more: moreView };
   app.innerHTML = views[route]();
   bindEvents();
 }
