@@ -30,12 +30,17 @@ const navItems = [
   ["leaderboard", "Leaderboard", "LD"],
   ["projects", "Projects", "PJ"],
   ["pricing", "Pricing", "UP"],
-  ["auth", "Access", "AC"],
   ["more", "Systems", "SY"],
 ];
 
+const publicRoutes = new Set(["home", "auth"]);
+
 function state() {
   return loadState();
+}
+
+function isRegistered() {
+  return Boolean(state().isRegistered);
 }
 
 function isPro() {
@@ -66,13 +71,35 @@ function courseProgress(course = selectedCourse()) {
 }
 
 function setRoute(next) {
-  route = next;
+  route = !isRegistered() && !publicRoutes.has(next) ? "auth" : next;
   toast = "";
   modal = "";
-  if (next === "lesson") {
+  if (route === "lesson") {
     updateState((s) => ({ ...s, visitedLabToday: true }));
   }
   render();
+}
+
+function publicShell(content, meta = {}) {
+  return `
+    <div class="public-shell">
+      <main class="workspace">
+        <header class="workspace-top">
+          <div>
+            <span class="mini-label">${meta.kicker || "Learn to code by building"}</span>
+            <h1>${meta.title || "Главная"}</h1>
+          </div>
+          <div class="account-strip">
+            <button class="secondary-btn compact" data-route="auth">Войти</button>
+            <button class="primary-btn compact" data-route="auth">Начать</button>
+          </div>
+        </header>
+        ${toast ? `<div class="toast">${toast}</div>` : ""}
+        ${content}
+      </main>
+      ${modal ? modalTemplate() : ""}
+    </div>
+  `;
 }
 
 function shell(content, meta = {}) {
@@ -188,7 +215,7 @@ function statCard(label, value, detail) {
 }
 
 function publicHome() {
-  return shell(`
+  return publicShell(`
     <section class="landing-hero">
       <div class="landing-copy">
         <span class="mini-label">CodeQuest Academy</span>
@@ -481,7 +508,7 @@ function projectRow(project, user) {
 }
 
 function authView() {
-  return shell(`
+  return publicShell(`
     <section class="split-layout">
       <article class="panel">
         <span class="mini-label">Login</span>
@@ -500,7 +527,7 @@ function authView() {
         <button class="primary-btn auth-save" data-save-username>Save username</button>
       </article>
     </section>
-  `, { title: "Access", kicker: "Auth and guest mode" });
+  `, { title: "Регистрация", kicker: "Access and guest mode" });
 }
 
 function moreView() {
@@ -568,7 +595,8 @@ function certificateCopy() {
 }
 
 function render() {
-  const views = { home: publicHome, courses: coursesView, course: courseDetail, lesson: lessonView, profile: profileView, leaderboard: leaderboardView, projects: projectsView, pricing: pricingView, auth: authView, more: moreView };
+  const views = { home: isRegistered() ? home : publicHome, courses: coursesView, course: courseDetail, lesson: lessonView, profile: profileView, leaderboard: leaderboardView, projects: projectsView, pricing: pricingView, auth: authView, more: moreView };
+  if (!isRegistered() && !publicRoutes.has(route)) route = "auth";
   app.innerHTML = views[route]();
   bindEvents();
 }
@@ -621,6 +649,9 @@ function bindEvents() {
 
   const saveUsername = app.querySelector("[data-save-username]");
   if (saveUsername) saveUsername.addEventListener("click", saveUsernameFromInput);
+
+  const demoLogin = app.querySelector("[data-login-demo]");
+  if (demoLogin) demoLogin.addEventListener("click", continueDemoAccount);
 
   const copyReferral = app.querySelector("[data-copy-referral]");
   if (copyReferral) copyReferral.addEventListener("click", () => { toast = `Referral copied: codequest.app/ref/${state().username}`; setRoute("more"); });
@@ -782,9 +813,15 @@ function saveUsernameFromInput() {
     render();
     return;
   }
-  updateState((s) => ({ ...s, username }));
+  updateState((s) => ({ ...s, username, isRegistered: true }));
   toast = `Username saved: ${username}`;
   setRoute("profile");
+}
+
+function continueDemoAccount() {
+  updateState((s) => ({ ...s, isRegistered: true }));
+  toast = "Welcome back.";
+  setRoute("courses");
 }
 
 function exportProgressSnapshot() {

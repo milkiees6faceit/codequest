@@ -2,6 +2,7 @@ const storageKey = "codequest-academy-state";
 
 const starterState = {
   username: "NovaCoder",
+  isRegistered: false,
   plan: "free",
   trialDaysLeft: 7,
   xp: 2840,
