@@ -64,6 +64,7 @@ const swSource = await readFile("sw.js", "utf8");
 for (const asset of ["./index.html", "./src/app.js", "./src/styles/globals.css", "./manifest.webmanifest"]) {
   assert(swSource.includes(asset), `service worker cache is missing ${asset}`);
 }
+assert(swSource.includes("./supabase/config.json"), "service worker cache is missing Supabase config");
 checks.push("service worker asset list");
 
 const server = spawn(process.execPath, ["dev-server.mjs"], {
@@ -79,7 +80,9 @@ try {
   const appJs = await fetchText("/src/app.js");
   assert(appJs.includes("releaseErrorView"), "app bundle missing release error boundary");
   const sw = await fetchText("/sw.js");
-  assert(sw.includes("codequest-academy-v5"), "service worker cache version is stale");
+  assert(sw.includes("codequest-academy-v6"), "service worker cache version is stale");
+  const supabaseConfig = await fetchText("/supabase/config.json");
+  assert(JSON.parse(supabaseConfig), "Supabase config JSON is invalid");
 } finally {
   server.kill();
 }

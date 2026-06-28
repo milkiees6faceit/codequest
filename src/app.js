@@ -11,12 +11,16 @@ import {
 import { checkAnswer } from "./lib/codeChecker.js";
 import {
   getCurrentSession,
+  getSupabaseConfig,
   isSupabaseConfigured,
+  loadHostedSupabaseConfig,
   loadRemoteProfile,
   saveRemoteProfile,
+  setSupabaseConfig,
   signInWithPassword,
   signOutSupabase,
   signUpWithPassword,
+  testSupabaseConnection,
 } from "./lib/supabaseClient.js";
 import { loadState, mergeState, resetState, updateState } from "./store/userStore.js";
 
@@ -30,6 +34,7 @@ let code = selectedLesson.starterCode;
 let toast = "";
 let modal = "";
 let authBusy = false;
+let supabaseBusy = false;
 let verifyCertificateId = "";
 
 const navItems = [
@@ -799,7 +804,9 @@ function modalTemplateRelease() {
 
 function authViewProduction() {
   const configured = isSupabaseConfigured();
+  const config = getSupabaseConfig();
   const busy = authBusy ? "disabled" : "";
+  const setupBusy = supabaseBusy ? "disabled" : "";
   return publicShell(`
     <section class="panel auth-status-panel">
       <div>
@@ -808,6 +815,21 @@ function authViewProduction() {
         <p class="muted">${configured ? "Email/password registration is connected. After login the dashboard navigation appears." : "Supabase can be connected with a public URL and anon key. Preview access lets reviewers test the product now."}</p>
       </div>
       <span class="tag">${configured ? "Connected" : "Preview mode"}</span>
+    </section>
+    <section class="panel auth-status-panel">
+      <div>
+        <span class="mini-label">Supabase setup</span>
+        <h2>${configured ? "Project key saved" : "Connect a project"}</h2>
+        <p class="muted">Use only the public project URL and publishable/anon key. Service-role keys must never be used in this static app.</p>
+      </div>
+      <span class="tag">${configured ? "Ready" : "Needs URL/key"}</span>
+    </section>
+    <section class="panel">
+      <div class="auth-form supabase-config-form">
+        <label>Project URL<input class="input" data-supabase-url value="${escapeHtml(config.url)}" placeholder="https://your-project.supabase.co" /></label>
+        <label>Publishable or anon key<input class="input" data-supabase-key value="${escapeHtml(config.key)}" placeholder="sb_publishable_... or anon key" /></label>
+        <button class="primary-btn" data-save-supabase ${setupBusy}>Save and test Supabase</button>
+      </div>
     </section>
     <section class="split-layout">
       <article class="panel">
@@ -989,6 +1011,9 @@ function bindEvents() {
 
   const supabaseRegister = app.querySelector("[data-register-supabase]");
   if (supabaseRegister) supabaseRegister.addEventListener("click", registerWithSupabase);
+
+  const saveSupabase = app.querySelector("[data-save-supabase]");
+  if (saveSupabase) saveSupabase.addEventListener("click", saveAndTestSupabaseConfig);
 
   const logout = app.querySelector("[data-logout]");
   if (logout) logout.addEventListener("click", logoutAccount);
@@ -1226,6 +1251,33 @@ function continueDemoAccount() {
   setRoute("courses");
 }
 
+async function saveAndTestSupabaseConfig() {
+  const url = app.querySelector("[data-supabase-url]")?.value.trim();
+  const key = app.querySelector("[data-supabase-key]")?.value.trim();
+  if (!url || !key) {
+    toast = "Enter Supabase project URL and public key.";
+    render();
+    return;
+  }
+  if (!url.startsWith("https://") || key.length < 20) {
+    toast = "Supabase URL/key format looks invalid.";
+    render();
+    return;
+  }
+  supabaseBusy = true;
+  render();
+  try {
+    setSupabaseConfig({ url, key });
+    await testSupabaseConnection();
+    toast = "Supabase connected. You can now sign in or create an account.";
+  } catch (error) {
+    toast = error.message || "Could not connect Supabase.";
+  } finally {
+    supabaseBusy = false;
+    render();
+  }
+}
+
 async function loginWithSupabase() {
   const email = app.querySelector("[data-login-email]")?.value.trim();
   const password = app.querySelector("[data-login-password]")?.value;
@@ -1381,6 +1433,7 @@ async function initApp() {
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(() => {});
   }
+  await loadHostedSupabaseConfig();
   if (isSupabaseConfigured()) {
     try {
       const session = await getCurrentSession();

@@ -1,4 +1,4 @@
-const cacheName = "codequest-academy-v5";
+const cacheName = "codequest-academy-v6";
 const coreAssets = [
   "./",
   "./index.html",
@@ -9,7 +9,8 @@ const coreAssets = [
   "./src/lib/codeChecker.js",
   "./src/lib/supabaseClient.js",
   "./src/store/userStore.js",
-  "./src/assets/codequest-hero.png"
+  "./src/assets/codequest-hero.png",
+  "./supabase/config.json"
 ];
 
 self.addEventListener("install", (event) => {

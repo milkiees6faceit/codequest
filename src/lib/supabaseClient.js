@@ -1,13 +1,47 @@
 const cdnModule = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
 
 let clientPromise;
+let hostedConfigLoaded = false;
+
+function normalizeConfig(config = {}) {
+  return {
+    url: String(config.url || "").trim(),
+    key: String(config.key || config.anonKey || config.publishableKey || "").trim(),
+  };
+}
+
+export async function loadHostedSupabaseConfig() {
+  if (hostedConfigLoaded) return getSupabaseConfig();
+  hostedConfigLoaded = true;
+  try {
+    const response = await fetch(new URL("../../supabase/config.json", import.meta.url), { cache: "no-store" });
+    if (!response.ok) return getSupabaseConfig();
+    const config = normalizeConfig(await response.json());
+    if (config.url || config.key) {
+      window.CODEQUEST_SUPABASE = { ...window.CODEQUEST_SUPABASE, ...config };
+      clientPromise = null;
+    }
+  } catch {
+    return getSupabaseConfig();
+  }
+  return getSupabaseConfig();
+}
 
 export function getSupabaseConfig() {
-  const runtime = window.CODEQUEST_SUPABASE || {};
+  const runtime = normalizeConfig(window.CODEQUEST_SUPABASE || {});
   return {
     url: runtime.url || localStorage.getItem("codequest-supabase-url") || "",
     key: runtime.key || localStorage.getItem("codequest-supabase-key") || "",
   };
+}
+
+export function setSupabaseConfig(config) {
+  const next = normalizeConfig(config);
+  if (next.url) localStorage.setItem("codequest-supabase-url", next.url);
+  if (next.key) localStorage.setItem("codequest-supabase-key", next.key);
+  window.CODEQUEST_SUPABASE = { ...window.CODEQUEST_SUPABASE, ...next };
+  clientPromise = null;
+  return getSupabaseConfig();
 }
 
 export function isSupabaseConfigured() {
@@ -38,6 +72,14 @@ export async function getCurrentSession() {
   const { data, error } = await supabase.auth.getSession();
   if (error) throw error;
   return data.session;
+}
+
+export async function testSupabaseConnection() {
+  const supabase = await getSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const { error } = await supabase.auth.getSession();
+  if (error) throw error;
+  return true;
 }
 
 export async function signUpWithPassword({ email, password, username }) {

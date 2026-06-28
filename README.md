@@ -35,10 +35,10 @@ https://milkiees6faceit.github.io/codequest/
 ## Supabase Auth
 
 1. Open `supabase/schema.sql` in the Supabase SQL Editor and run it once.
-2. In `index.html`, fill `window.CODEQUEST_SUPABASE.url` and `window.CODEQUEST_SUPABASE.key` with your project URL and public anon/publishable key.
+2. Fill `supabase/config.json` with your project URL and public anon/publishable key, or paste them in the Supabase setup panel on the Registration page.
 3. Enable Email auth in Supabase Authentication settings.
 
-Only public browser keys belong in `index.html`. Never put a service-role key in this static app.
+Only public browser keys belong in `supabase/config.json` or the in-app setup panel. Never put a service-role key in this static app.
 
 ## Pre-Release Checks
 
