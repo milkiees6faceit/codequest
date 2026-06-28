@@ -13,6 +13,7 @@ Open `http://localhost:4173/`.
 ## Release Features
 
 - GitHub Pages-ready static app.
+- Hash-based section URLs for static hosting, for example `#courses` and `#profile`.
 - PWA manifest and service worker for cached core assets.
 - `404.html` fallback for Pages refresh/direct-link behavior.
 - Sequential Duolingo-style lesson map.

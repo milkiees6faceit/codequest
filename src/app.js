@@ -45,6 +45,7 @@ const navItems = [
 ];
 
 const publicRoutes = new Set(["home", "auth", "verify"]);
+const routeIds = new Set([...publicRoutes, "courses", "course", "lesson", "profile", "leaderboard", "projects", "pricing", "more"]);
 
 const dictionary = {
   ru: {
@@ -299,19 +300,34 @@ function isLessonSequenceLocked(lesson, user = state()) {
 }
 
 function setRoute(next) {
-  route = !isRegistered() && !publicRoutes.has(next) ? "auth" : next;
-  if (next !== "verify" && window.location.search.includes("verify=")) {
+  const requestedRoute = routeIds.has(next) ? next : "home";
+  route = !isRegistered() && !publicRoutes.has(requestedRoute) ? "auth" : requestedRoute;
+  if (requestedRoute !== "verify" && window.location.search.includes("verify=")) {
     const url = new URL(window.location.href);
     url.searchParams.delete("verify");
     window.history.replaceState({}, "", url);
     verifyCertificateId = "";
   }
+  syncUrlRoute(route);
   toast = "";
   modal = "";
   if (route === "lesson") {
     updateState((s) => ({ ...s, visitedLabToday: true }));
   }
   render();
+}
+
+function routeFromHash() {
+  const hashRoute = window.location.hash.replace(/^#\/?/, "");
+  return routeIds.has(hashRoute) ? hashRoute : "";
+}
+
+function syncUrlRoute(nextRoute) {
+  if (nextRoute === "verify") return;
+  const nextHash = nextRoute === "home" ? "" : `#${nextRoute}`;
+  if (window.location.hash !== nextHash) {
+    window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}${nextHash}`);
+  }
 }
 
 function toggleLanguage() {
@@ -928,6 +944,7 @@ function certificateCopy() {
 function render() {
   const views = { home: isRegistered() ? home : publicHome, courses: coursesView, course: courseDetail, lesson: lessonView, profile: profileView, leaderboard: leaderboardView, projects: projectsView, pricing: pricingView, auth: authView, verify: verifyView, more: moreView };
   if (!isRegistered() && !publicRoutes.has(route)) route = "auth";
+  syncUrlRoute(route);
   document.documentElement.lang = lang();
   app.innerHTML = views[route]();
   bindEvents();
@@ -1378,6 +1395,8 @@ async function initApp() {
   if (verifyParam) {
     verifyCertificateId = verifyParam.trim().toUpperCase();
     route = "verify";
+  } else {
+    route = routeFromHash() || route;
   }
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(() => {});
@@ -1395,5 +1414,15 @@ async function initApp() {
   }
   render();
 }
+
+window.addEventListener("hashchange", () => {
+  const nextRoute = routeFromHash() || "home";
+  if (nextRoute !== route) {
+    route = nextRoute;
+    toast = "";
+    modal = "";
+    render();
+  }
+});
 
 initApp();
