@@ -30,6 +30,7 @@ let code = selectedLesson.starterCode;
 let toast = "";
 let modal = "";
 let authBusy = false;
+let verifyCertificateId = "";
 
 const navItems = [
   ["home", "navHome", "OV"],
@@ -43,7 +44,7 @@ const navItems = [
   ["more", "navSystems", "SY"],
 ];
 
-const publicRoutes = new Set(["home", "auth"]);
+const publicRoutes = new Set(["home", "auth", "verify"]);
 
 const dictionary = {
   ru: {
@@ -255,13 +256,23 @@ function certificateId(course, user = state()) {
   return `CQ-${course.language.toUpperCase()}-${String(hash).slice(0, 6).padStart(6, "0")}`;
 }
 
+function certificateVerifyUrl(id) {
+  return `${window.location.origin}${window.location.pathname}?verify=${encodeURIComponent(id)}`;
+}
+
+function certificateById(id, user = state()) {
+  return completedCourses(user).find((course) => certificateId(course, user) === id) || null;
+}
+
 function certificateCard(course, user = state()) {
+  const id = certificateId(course, user);
   return `<article class="certificate-card">
     <span class="mini-label">${course.language} Certificate</span>
     <h3>${course.title}</h3>
     <p>${user.username} completed ${getLessons(course.id).length} missions.</p>
-    <strong>${certificateId(course, user)}</strong>
+    <strong>${id}</strong>
     <button class="secondary-btn compact" data-certificate="${course.id}">Preview</button>
+    <button class="ghost-btn compact" data-copy-certificate="${id}">Copy verify link</button>
   </article>`;
 }
 
@@ -289,6 +300,12 @@ function isLessonSequenceLocked(lesson, user = state()) {
 
 function setRoute(next) {
   route = !isRegistered() && !publicRoutes.has(next) ? "auth" : next;
+  if (next !== "verify" && window.location.search.includes("verify=")) {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("verify");
+    window.history.replaceState({}, "", url);
+    verifyCertificateId = "";
+  }
   toast = "";
   modal = "";
   if (route === "lesson") {
@@ -808,6 +825,35 @@ function authView() {
   `, { title: "Регистрация", kicker: "Access and guest mode" });
 }
 
+function verifyView() {
+  const user = state();
+  const id = verifyCertificateId || new URLSearchParams(window.location.search).get("verify") || "";
+  const course = certificateById(id, user);
+  return publicShell(`
+    <section class="panel verification-panel">
+      <span class="mini-label">Certificate verification</span>
+      <h2>${id ? escapeHtml(id) : "Enter a certificate ID"}</h2>
+      ${course ? `
+        <div class="verification-status valid">Valid local certificate</div>
+        <p class="muted">CodeQuest Academy certifies ${user.username} completed ${course.title}.</p>
+        <div class="insight-grid compact-grid">
+          ${statCard("Course", course.language, "Track")}
+          ${statCard("Missions", getLessons(course.id).length, "Completed")}
+          ${statCard("Status", "Valid", "Verification")}
+        </div>
+      ` : `
+        <div class="verification-status pending">Not found in this browser</div>
+        <p class="muted">This static MVP can verify certificates stored in the current browser profile. Supabase-backed public verification is prepared in the database schema for production.</p>
+      `}
+      <div class="auth-form">
+        <label>Certificate ID<input class="input" data-verify-input value="${escapeHtml(id)}" placeholder="CQ-HTML-123456" /></label>
+        <button class="primary-btn" data-run-verify>Verify certificate</button>
+        <button class="secondary-btn" data-route="home">Back to home</button>
+      </div>
+    </section>
+  `, { title: "Verify Certificate", kicker: "Public proof" });
+}
+
 function moreView() {
   const user = state();
   const readyCertificates = completedCourses(user);
@@ -875,11 +921,12 @@ function certificateCopy() {
   if (!courseDone) {
     return `Complete all ${getLessons(course.id).length} ${course.language} missions to generate a PDF certificate with ID and QR verification.`;
   }
-  return `CodeQuest Academy certifies ${user.username} completed ${course.title}. Certificate ID: ${certificateId(course, user)}. Verification path: /verify/${certificateId(course, user)}.`;
+  const id = certificateId(course, user);
+  return `CodeQuest Academy certifies ${user.username} completed ${course.title}. Certificate ID: ${id}. Verification link: ${certificateVerifyUrl(id)}.`;
 }
 
 function render() {
-  const views = { home: isRegistered() ? home : publicHome, courses: coursesView, course: courseDetail, lesson: lessonView, profile: profileView, leaderboard: leaderboardView, projects: projectsView, pricing: pricingView, auth: authView, more: moreView };
+  const views = { home: isRegistered() ? home : publicHome, courses: coursesView, course: courseDetail, lesson: lessonView, profile: profileView, leaderboard: leaderboardView, projects: projectsView, pricing: pricingView, auth: authView, verify: verifyView, more: moreView };
   if (!isRegistered() && !publicRoutes.has(route)) route = "auth";
   document.documentElement.lang = lang();
   app.innerHTML = views[route]();
@@ -910,6 +957,7 @@ function bindEvents() {
   app.querySelectorAll("[data-confirm-pro]").forEach((el) => el.addEventListener("click", confirmProUpgrade));
   app.querySelectorAll("[data-close-only]").forEach((el) => el.addEventListener("click", () => { modal = ""; render(); }));
   app.querySelectorAll("[data-certificate]").forEach((el) => el.addEventListener("click", () => openCertificate(el.dataset.certificate)));
+  app.querySelectorAll("[data-copy-certificate]").forEach((el) => el.addEventListener("click", () => copyCertificateLink(el.dataset.copyCertificate)));
   app.querySelectorAll("[data-project]").forEach((el) => el.addEventListener("click", () => submitProject(el.dataset.project)));
   app.querySelectorAll("[data-buy-item]").forEach((el) => el.addEventListener("click", () => buyItem(el.dataset.buyItem)));
   app.querySelectorAll("[data-tutor-prompt]").forEach((el) => el.addEventListener("click", () => askTutor(el.dataset.tutorPrompt)));
@@ -950,6 +998,9 @@ function bindEvents() {
 
   const copyReferral = app.querySelector("[data-copy-referral]");
   if (copyReferral) copyReferral.addEventListener("click", copyReferralLink);
+
+  const runVerify = app.querySelector("[data-run-verify]");
+  if (runVerify) runVerify.addEventListener("click", runCertificateVerification);
 }
 
 function confirmProUpgrade() {
@@ -962,6 +1013,28 @@ function confirmProUpgrade() {
 function openCertificate(courseId) {
   if (courseId) selectedCourseId = courseId;
   modal = "certificate";
+  render();
+}
+
+async function copyCertificateLink(id) {
+  const link = certificateVerifyUrl(id);
+  try {
+    await navigator.clipboard?.writeText(link);
+    toast = `Certificate link copied: ${id}`;
+  } catch {
+    toast = `Certificate link: ${link}`;
+  }
+  render();
+}
+
+function runCertificateVerification() {
+  const input = app.querySelector("[data-verify-input]");
+  verifyCertificateId = input?.value.trim().toUpperCase() || "";
+  const url = new URL(window.location.href);
+  if (verifyCertificateId) url.searchParams.set("verify", verifyCertificateId);
+  else url.searchParams.delete("verify");
+  window.history.replaceState({}, "", url);
+  route = "verify";
   render();
 }
 
@@ -1301,6 +1374,11 @@ function escapeHtml(value) {
 }
 
 async function initApp() {
+  const verifyParam = new URLSearchParams(window.location.search).get("verify");
+  if (verifyParam) {
+    verifyCertificateId = verifyParam.trim().toUpperCase();
+    route = "verify";
+  }
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(() => {});
   }
@@ -1309,7 +1387,7 @@ async function initApp() {
       const session = await getCurrentSession();
       if (session?.user) {
         await activateSupabaseUser(session.user);
-        route = "courses";
+        if (route !== "verify") route = "courses";
       }
     } catch (error) {
       toast = error.message || "Could not restore Supabase session.";

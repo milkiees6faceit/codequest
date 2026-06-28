@@ -18,6 +18,7 @@ Open `http://localhost:4173/`.
 - Sequential Duolingo-style lesson map.
 - Exportable progress snapshot.
 - Certificate previews with stable verification IDs.
+- Public `?verify=CQ-...` certificate verification screen.
 - Supabase-ready profile, progress, project, certificate, and subscription schema.
 
 ## GitHub Pages
@@ -55,4 +56,5 @@ Then verify:
 - lesson completion unlocks the next level;
 - project requirements lock/unlock correctly;
 - export downloads JSON;
+- certificate preview opens and the copied verify link loads;
 - GitHub Pages deployment succeeds.

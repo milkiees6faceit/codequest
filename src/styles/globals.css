@@ -1070,6 +1070,31 @@ button:disabled {
   letter-spacing: 0;
 }
 
+.verification-panel {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.verification-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  margin: 12px 0;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+.verification-status.valid {
+  color: #075239;
+  background: #dcfce7;
+}
+
+.verification-status.pending {
+  color: #92400e;
+  background: #fef3c7;
+}
+
 .table-panel {
   display: grid;
   gap: 0;
