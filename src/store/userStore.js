@@ -6,6 +6,7 @@ const starterState = {
   authProvider: "demo",
   authUserId: "",
   email: "",
+  createdAt: new Date().toISOString(),
   lang: "ru",
   plan: "free",
   trialDaysLeft: 7,
@@ -45,8 +46,16 @@ function resetDailyIfNeeded(state) {
 
 export function loadState() {
   const saved = localStorage.getItem(storageKey);
-  const parsed = saved ? JSON.parse(saved) : starterState;
-  return resetDailyIfNeeded({ ...starterState, ...parsed });
+  let parsed = starterState;
+  try {
+    parsed = saved ? JSON.parse(saved) : starterState;
+  } catch {
+    parsed = starterState;
+  }
+  const merged = { ...starterState, ...parsed };
+  const next = resetDailyIfNeeded(merged);
+  if (next !== merged) saveState(next);
+  return next;
 }
 
 export function saveState(state) {
@@ -66,6 +75,11 @@ export function mergeState(patch) {
 }
 
 export function resetState() {
-  saveState(starterState);
-  return starterState;
+  const freshState = {
+    ...starterState,
+    createdAt: new Date().toISOString(),
+    lastDailyReset: new Date().toDateString(),
+  };
+  saveState(freshState);
+  return freshState;
 }

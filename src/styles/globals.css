@@ -1038,6 +1038,38 @@ button:disabled {
   font-weight: 800;
 }
 
+.certificate-section {
+  margin-top: 20px;
+}
+
+.certificate-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.certificate-card {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid #cfe1ff;
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(7, 95, 216, 0.1), rgba(10, 132, 255, 0.04)),
+    white;
+}
+
+.certificate-card h3,
+.certificate-card p {
+  margin: 0;
+}
+
+.certificate-card strong {
+  color: var(--blue);
+  letter-spacing: 0;
+}
+
 .table-panel {
   display: grid;
   gap: 0;
@@ -1218,6 +1250,7 @@ button:disabled {
   .benefit-grid,
   .pricing-grid,
   .landing-plan-grid,
+  .certificate-grid,
   .system-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -1254,6 +1287,7 @@ button:disabled {
   .benefit-grid,
   .pricing-grid,
   .landing-plan-grid,
+  .certificate-grid,
   .system-grid,
   .track-strip {
     grid-template-columns: 1fr;

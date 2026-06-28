@@ -1032,11 +1032,11 @@ export const lessonsByCourse = {
 };
 
 export const projects = [
-  { id: "personal-landing", course: "HTML", title: "Personal landing", difficulty: "Beginner", xp: 300, pro: false, requirement: 2 },
-  { id: "animated-cards", course: "CSS", title: "Animated card set", difficulty: "Beginner", xp: 450, pro: false, requirement: 3 },
-  { id: "todo-reactor", course: "JavaScript", title: "Todo app", difficulty: "Advanced", xp: 650, pro: true, requirement: 4 },
-  { id: "python-calculator", course: "Python", title: "Calculator", difficulty: "Beginner", xp: 520, pro: true, requirement: 4 },
-  { id: "react-dashboard", course: "React", title: "Progress dashboard", difficulty: "Advanced", xp: 900, pro: true, requirement: 5 },
+  { id: "personal-landing", courseId: "html-island", course: "HTML", title: "Personal landing", difficulty: "Beginner", xp: 300, pro: false, requirement: 6 },
+  { id: "animated-cards", courseId: "css-galaxy", course: "CSS", title: "Animated card set", difficulty: "Beginner", xp: 450, pro: false, requirement: 6 },
+  { id: "todo-reactor", courseId: "js-city", course: "JavaScript", title: "Todo app", difficulty: "Advanced", xp: 650, pro: true, requirement: 8 },
+  { id: "python-calculator", courseId: "python-forest", course: "Python", title: "Calculator", difficulty: "Beginner", xp: 520, pro: true, requirement: 8 },
+  { id: "react-dashboard", courseId: "js-city", course: "React", title: "Progress dashboard", difficulty: "Advanced", xp: 900, pro: true, requirement: 14 },
 ];
 
 export const badges = ["First Quest", "HTML Scout", "Daily Spark", "Pixel Perfect", "Pro Trial"];

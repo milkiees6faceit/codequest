@@ -101,6 +101,8 @@ const dictionary = {
     levels: "уровней",
     done: "Готово",
     boss: "Босс",
+    next: "Дальше",
+    nextLevel: "Следующий уровень",
     currentTrack: "Текущий трек",
     dailyQuests: "Ежедневные задания",
     commandCenter: "Центр обучения",
@@ -166,6 +168,8 @@ const dictionary = {
     levels: "levels",
     done: "Done",
     boss: "Boss",
+    next: "Next",
+    nextLevel: "Next level",
     currentTrack: "Current track",
     dailyQuests: "Daily quests",
     commandCenter: "Command Center",
@@ -209,6 +213,12 @@ function isPro() {
   return state().plan !== "free";
 }
 
+function trialDaysLeft(user = state()) {
+  const createdAt = new Date(user.createdAt || Date.now()).getTime();
+  const ageDays = Math.floor((Date.now() - createdAt) / 86400000);
+  return Math.max(0, 7 - ageDays);
+}
+
 function selectedCourse() {
   return courses.find((course) => course.id === selectedCourseId) || courses[0];
 }
@@ -230,6 +240,51 @@ function courseProgress(course = selectedCourse()) {
   const lessons = getLessons(course.id);
   if (!lessons.length) return course.progress || 0;
   return Math.round((completedForCourse(course.id) / lessons.length) * 100);
+}
+
+function completedCourses(user = state()) {
+  return courses.filter((course) => getLessons(course.id).every((lesson) => user.completedLessons.includes(lesson.id)));
+}
+
+function certificateId(course, user = state()) {
+  const source = `${user.username}-${course.id}-${user.createdAt || ""}`;
+  let hash = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    hash = (hash * 31 + source.charCodeAt(index)) >>> 0;
+  }
+  return `CQ-${course.language.toUpperCase()}-${String(hash).slice(0, 6).padStart(6, "0")}`;
+}
+
+function certificateCard(course, user = state()) {
+  return `<article class="certificate-card">
+    <span class="mini-label">${course.language} Certificate</span>
+    <h3>${course.title}</h3>
+    <p>${user.username} completed ${getLessons(course.id).length} missions.</p>
+    <strong>${certificateId(course, user)}</strong>
+    <button class="secondary-btn compact" data-certificate="${course.id}">Preview</button>
+  </article>`;
+}
+
+function nextLessonForCourse(courseId, user = state()) {
+  const completed = new Set(user.completedLessons);
+  const lessons = getLessons(courseId);
+  return lessons.find((lesson) => !completed.has(lesson.id)) || lessons[0];
+}
+
+function nextLessonAfter(lessonId, user = state()) {
+  const course = getCourseByLesson(lessonId);
+  const lessons = getLessons(course.id);
+  const index = lessons.findIndex((lesson) => lesson.id === lessonId);
+  return lessons.slice(index + 1).find((lesson) => !user.completedLessons.includes(lesson.id)) || null;
+}
+
+function isLessonSequenceLocked(lesson, user = state()) {
+  if (user.completedLessons.includes(lesson.id)) return false;
+  const course = getCourseByLesson(lesson.id);
+  const lessons = getLessons(course.id);
+  const index = lessons.findIndex((item) => item.id === lesson.id);
+  if (index <= 0) return false;
+  return !user.completedLessons.includes(lessons[index - 1].id);
 }
 
 function setRoute(next) {
@@ -309,6 +364,7 @@ function shell(content, meta = {}) {
             <button class="avatar" data-route="profile">${user.username.slice(0, 2).toUpperCase()}</button>
           </div>
         </header>
+        ${toast ? `<div class="toast">${toast}</div>` : ""}
         ${content}
       </main>
       ${modal ? modalTemplate() : ""}
@@ -519,18 +575,20 @@ function courseDetail() {
   const lessons = getLessons(course.id);
   const completed = new Set(user.completedLessons);
   const lockedCourse = course.pro && !isPro();
-  const nextLesson = lessons.find((lesson) => !completed.has(lesson.id)) || lessons[0];
+  const nextLesson = nextLessonForCourse(course.id, user);
   const primaryCourseAction = lockedCourse
     ? `<button class="primary-btn" data-route="pricing">${t("unlockPro")}</button>`
     : `<button class="primary-btn" data-lesson="${nextLesson?.id || ""}">${t("continue")}</button>`;
   const renderMissionNode = (lesson, index) => {
-    const locked = lockedCourse || (!isPro() && user.dailyLessonsCompleted >= 5 && !completed.has(lesson.id));
+    const sequenceLocked = isLessonSequenceLocked(lesson, user);
+    const locked = lockedCourse || sequenceLocked || (!isPro() && user.dailyLessonsCompleted >= 5 && !completed.has(lesson.id));
     const done = completed.has(lesson.id);
     const boss = lesson.title.toLowerCase().includes("boss");
+    const current = !done && !locked && nextLesson?.id === lesson.id;
     return `<button class="mission-node ${done ? "done" : ""} ${locked ? "locked" : ""} ${boss ? "boss" : ""}" data-lesson="${lesson.id}">
       <span class="path-step">${done ? "OK" : `0${index + 1}`}</span>
       <span class="mission-copy"><strong>${lesson.title}</strong><small>${lesson.content}</small></span>
-      <span class="mission-meta"><span class="tag">${lesson.xp} XP</span><span class="tag">${done ? t("done") : locked ? t("locked") : boss ? t("boss") : t("open")}</span></span>
+      <span class="mission-meta"><span class="tag">${lesson.xp} XP</span><span class="tag">${done ? t("done") : locked ? t("locked") : current ? t("next") : boss ? t("boss") : t("open")}</span></span>
     </button>`;
   };
   const unitMap = course.units?.map((unit, unitIndex) => {
@@ -574,6 +632,8 @@ function lessonView() {
   const user = state();
   const course = getCourseByLesson(selectedLesson.id);
   const locked = (course.pro && !isPro()) || (!isPro() && user.dailyLessonsCompleted >= 5 && !user.completedLessons.includes(selectedLesson.id));
+  const lessonDone = user.completedLessons.includes(selectedLesson.id);
+  const nextUnlockedLesson = lessonDone ? nextLessonAfter(selectedLesson.id, user) : null;
   return shell(`
     <section class="lab-layout">
       <article class="panel lesson-brief">
@@ -596,11 +656,11 @@ function lessonView() {
         ${locked ? `<div class="empty-note">This mission is locked by your current access or daily limit.</div>` : ""}
         <div class="actions">
           <button class="primary-btn" data-check-code ${locked ? "disabled" : ""}>Проверить</button>
+          ${nextUnlockedLesson ? `<button class="primary-btn" data-lesson="${nextUnlockedLesson.id}">${t("nextLevel")}</button>` : ""}
           <button class="secondary-btn" data-fill-answer>Use demo answer</button>
           <button class="ghost-btn" data-reset-code>Reset</button>
           <button class="secondary-btn" data-tutor-ask>Ask AI Tutor</button>
         </div>
-        ${toast ? `<div class="toast">${toast}</div>` : ""}
       </article>
     </section>
   `, { title: "Code Lab", kicker: "Interactive validation" });
@@ -611,7 +671,7 @@ function pricingView() {
   return shell(`
     <section class="panel billing-panel">
       <span class="mini-label">Current access</span>
-      <h2>${isPro() ? "Pro active" : `${user.trialDaysLeft} trial days available`}</h2>
+      <h2>${isPro() ? "Pro active" : `${trialDaysLeft(user)} trial days available`}</h2>
       <p class="muted">Free users get 5 lessons and 5 AI Tutor questions per day. Pro removes daily limits and unlocks advanced projects.</p>
     </section>
     <section class="pricing-grid">
@@ -633,6 +693,7 @@ function priceCard(title, price, items, button, best) {
 
 function profileView() {
   const user = state();
+  const readyCertificates = completedCourses(user);
   return shell(`
     <section class="split-layout">
       <article class="panel profile-panel">
@@ -654,6 +715,15 @@ function profileView() {
         <h2>Badges</h2>
         <div class="badge-grid">${badges.map((badge) => `<span class="badge">${user.earnedBadges.includes(badge) ? "OK " : ""}${badge}</span>`).join("")}</div>
       </article>
+    </section>
+    <section class="panel certificate-section">
+      <div class="row-between">
+        <div><span class="mini-label">Certificates</span><h2>Release-ready proof of completion</h2></div>
+        <span class="tag">${readyCertificates.length} ready</span>
+      </div>
+      <div class="certificate-grid">
+        ${readyCertificates.length ? readyCertificates.map((course) => certificateCard(course, user)).join("") : `<p class="muted">Complete any course to unlock a verified certificate with a stable ID.</p>`}
+      </div>
     </section>
   `, { title: "Profile", kicker: "Learner identity" });
 }
@@ -690,10 +760,10 @@ function projectsView() {
 function projectRow(project, user) {
   const completed = user.completedProjects.includes(project.id);
   const lockedByPro = project.pro && !isPro();
-  const lockedByProgress = completedForCourse("html-island") < project.requirement;
+  const lockedByProgress = completedForCourse(project.courseId) < project.requirement;
   const locked = lockedByPro || lockedByProgress;
   return `<div class="project-row ${completed ? "complete" : ""}">
-    <span><strong>${project.title}</strong><small>${project.course} - requires ${project.requirement}/5 HTML missions${completed ? " - submitted" : ""}</small></span>
+    <span><strong>${project.title}</strong><small>${project.course} - requires ${project.requirement}/${getLessons(project.courseId).length} ${project.course} missions${completed ? " - submitted" : ""}</small></span>
     <span class="tag">${project.difficulty}</span>
     <button class="${locked ? "secondary-btn" : "primary-btn"} compact" data-project="${project.id}" ${completed ? "disabled" : ""}>${completed ? "Done" : lockedByPro ? "Pro" : lockedByProgress ? "Locked" : `Submit +${project.xp} XP`}</button>
   </div>`;
@@ -740,6 +810,7 @@ function authView() {
 
 function moreView() {
   const user = state();
+  const readyCertificates = completedCourses(user);
   return shell(`
     <section class="system-grid">
       <article class="panel">
@@ -756,8 +827,8 @@ function moreView() {
       </article>
       <article class="panel">
         <span class="mini-label">Certificates</span>
-        <h2>${user.certificates.length}</h2>
-        <p class="muted">${user.certificates.length ? user.certificates.join(", ") : "Complete a course to generate the first certificate."}</p>
+        <h2>${readyCertificates.length}</h2>
+        <p class="muted">${readyCertificates.length ? readyCertificates.map((course) => `${course.language}: ${certificateId(course, user)}`).join(", ") : "Complete a course to generate the first certificate."}</p>
       </article>
       <article class="panel">
         <span class="mini-label">Shop</span>
@@ -790,16 +861,21 @@ function modalTemplate() {
     certificate: ["Certificate preview", certificateCopy()],
     tutor: ["AI Tutor", "Free plan includes 5 tutor questions per day. Pro removes this limit."],
   }[modal];
-  return `<div class="modal-backdrop"><div class="modal"><h2>${copy[0]}</h2><p class="muted">${copy[1]}</p><div class="actions"><button class="primary-btn" data-close-modal>Upgrade to Pro</button><button class="secondary-btn" data-close-only>Maybe Later</button></div></div></div>`;
+  const upgradeModal = ["limit", "pro", "tutor"].includes(modal);
+  const actions = upgradeModal
+    ? `<button class="primary-btn" data-confirm-pro>Upgrade to Pro</button><button class="secondary-btn" data-close-only>Maybe Later</button>`
+    : `<button class="primary-btn" data-close-only>Close</button>`;
+  return `<div class="modal-backdrop"><div class="modal"><h2>${copy[0]}</h2><p class="muted">${copy[1]}</p><div class="actions">${actions}</div></div></div>`;
 }
 
 function certificateCopy() {
   const user = state();
   const course = selectedCourse();
-  if (!user.certificates.includes(course.title)) {
+  const courseDone = getLessons(course.id).every((lesson) => user.completedLessons.includes(lesson.id));
+  if (!courseDone) {
     return `Complete all ${getLessons(course.id).length} ${course.language} missions to generate a PDF certificate with ID and QR verification.`;
   }
-  return `CodeQuest Academy certifies ${user.username} completed ${course.title}. Certificate ID: CQ-${course.language}-${new Date().getFullYear()}-001. QR verification page ready for /verify.`;
+  return `CodeQuest Academy certifies ${user.username} completed ${course.title}. Certificate ID: ${certificateId(course, user)}. Verification path: /verify/${certificateId(course, user)}.`;
 }
 
 function render() {
@@ -831,9 +907,9 @@ function bindEvents() {
 
   app.querySelectorAll("[data-cycle-lesson]").forEach((el) => el.addEventListener("click", () => cycleLesson(el.dataset.cycleLesson)));
   app.querySelectorAll("[data-upgrade]").forEach((el) => el.addEventListener("click", () => { modal = el.dataset.upgrade === "Free" ? "" : "pro"; render(); }));
-  app.querySelectorAll("[data-close-modal]").forEach((el) => el.addEventListener("click", () => { updateState((s) => ({ ...s, plan: "pro" })); modal = ""; render(); }));
+  app.querySelectorAll("[data-confirm-pro]").forEach((el) => el.addEventListener("click", confirmProUpgrade));
   app.querySelectorAll("[data-close-only]").forEach((el) => el.addEventListener("click", () => { modal = ""; render(); }));
-  app.querySelectorAll("[data-certificate]").forEach((el) => el.addEventListener("click", () => { modal = "certificate"; render(); }));
+  app.querySelectorAll("[data-certificate]").forEach((el) => el.addEventListener("click", () => openCertificate(el.dataset.certificate)));
   app.querySelectorAll("[data-project]").forEach((el) => el.addEventListener("click", () => submitProject(el.dataset.project)));
   app.querySelectorAll("[data-buy-item]").forEach((el) => el.addEventListener("click", () => buyItem(el.dataset.buyItem)));
   app.querySelectorAll("[data-tutor-prompt]").forEach((el) => el.addEventListener("click", () => askTutor(el.dataset.tutorPrompt)));
@@ -873,7 +949,31 @@ function bindEvents() {
   if (logout) logout.addEventListener("click", logoutAccount);
 
   const copyReferral = app.querySelector("[data-copy-referral]");
-  if (copyReferral) copyReferral.addEventListener("click", () => { toast = `Referral copied: codequest.app/ref/${state().username}`; setRoute("more"); });
+  if (copyReferral) copyReferral.addEventListener("click", copyReferralLink);
+}
+
+function confirmProUpgrade() {
+  updateState((s) => ({ ...s, plan: "pro", trialDaysLeft: 0 }));
+  modal = "";
+  toast = "Pro activated. Unlimited lessons, projects, tutor, and certificates are unlocked.";
+  render();
+}
+
+function openCertificate(courseId) {
+  if (courseId) selectedCourseId = courseId;
+  modal = "certificate";
+  render();
+}
+
+async function copyReferralLink() {
+  const link = `codequest.app/ref/${state().username}`;
+  try {
+    await navigator.clipboard?.writeText(link);
+    toast = `Referral copied: ${link}`;
+  } catch {
+    toast = `Referral link: ${link}`;
+  }
+  render();
 }
 
 function openCourse(courseId) {
@@ -886,7 +986,7 @@ function openCourse(courseId) {
     render();
     return;
   }
-  selectedLesson = getLessons(courseId)[0] || selectedLesson;
+  selectedLesson = nextLessonForCourse(courseId) || selectedLesson;
   code = selectedLesson.starterCode;
   setRoute("course");
 }
@@ -899,6 +999,14 @@ function openLesson(lessonId) {
   if (lessonCourse.pro && !isPro()) {
     selectedCourseId = lessonCourse.id;
     modal = "pro";
+    render();
+    return;
+  }
+  if (isLessonSequenceLocked(lesson, user)) {
+    selectedCourseId = lessonCourse.id;
+    toast = "Complete the previous level first.";
+    route = "course";
+    modal = "";
     render();
     return;
   }
@@ -927,7 +1035,7 @@ function completeLesson() {
     render();
     return;
   }
-  updateState((s) => {
+  const nextState = updateState((s) => {
     const alreadyDone = s.completedLessons.includes(selectedLesson.id);
     const completedLessons = alreadyDone ? s.completedLessons : [...s.completedLessons, selectedLesson.id];
     const courseFinished = getLessons(course.id).every((lesson) => completedLessons.includes(lesson.id));
@@ -944,8 +1052,11 @@ function completeLesson() {
       certificates: courseFinished && !s.certificates.includes(course.title) ? [...s.certificates, course.title] : s.certificates,
     };
   });
+  const nextLesson = nextLessonAfter(selectedLesson.id, nextState);
   syncCurrentProfile();
-  toast = `Mission complete: +${selectedLesson.xp} XP, coins added, progress saved locally.`;
+  toast = nextLesson
+    ? `Mission complete: +${selectedLesson.xp} XP. Next unlocked: ${nextLesson.title}.`
+    : `Course complete: ${course.title} certificate unlocked.`;
   render();
 }
 
@@ -954,9 +1065,7 @@ function cycleLesson(direction) {
   const index = lessons.findIndex((lesson) => lesson.id === selectedLesson.id);
   const currentIndex = index >= 0 ? index : 0;
   const nextIndex = direction === "next" ? (currentIndex + 1) % lessons.length : (currentIndex - 1 + lessons.length) % lessons.length;
-  selectedLesson = lessons[nextIndex];
-  code = selectedLesson.starterCode;
-  render();
+  openLesson(lessons[nextIndex].id);
 }
 
 function submitProject(projectId) {
@@ -967,8 +1076,8 @@ function submitProject(projectId) {
     render();
     return;
   }
-  if (completedForCourse("html-island") < project.requirement) {
-    toast = `Complete ${project.requirement} HTML missions to unlock this project.`;
+  if (completedForCourse(project.courseId) < project.requirement) {
+    toast = `Complete ${project.requirement} ${project.course} missions to unlock this project.`;
     render();
     return;
   }
@@ -1163,14 +1272,23 @@ function exportProgressSnapshot() {
   const snapshot = {
     username: user.username,
     plan: user.plan,
+    trialDaysLeft: trialDaysLeft(user),
     xp: user.xp,
     level: user.level,
     coins: user.coins,
     completedLessons: user.completedLessons,
     completedProjects: user.completedProjects,
-    certificates: user.certificates,
+    certificates: completedCourses(user).map((course) => ({ course: course.title, id: certificateId(course, user) })),
+    exportedAt: new Date().toISOString(),
   };
-  toast = `Progress snapshot: ${JSON.stringify(snapshot)}`;
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `codequest-progress-${user.username}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+  toast = "Progress export downloaded.";
   render();
 }
 
