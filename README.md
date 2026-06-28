@@ -47,6 +47,7 @@ node --check src/app.js
 node --check src/store/userStore.js
 node --check src/data/demoCourses.js
 node --check src/lib/supabaseClient.js
+node scripts/release-smoke.mjs
 node dev-server.mjs
 ```
 
