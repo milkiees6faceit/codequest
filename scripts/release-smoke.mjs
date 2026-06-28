@@ -79,7 +79,7 @@ try {
   const appJs = await fetchText("/src/app.js");
   assert(appJs.includes("releaseErrorView"), "app bundle missing release error boundary");
   const sw = await fetchText("/sw.js");
-  assert(sw.includes("codequest-academy-v4"), "service worker cache version is stale");
+  assert(sw.includes("codequest-academy-v5"), "service worker cache version is stale");
 } finally {
   server.kill();
 }

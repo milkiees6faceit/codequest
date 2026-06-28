@@ -1,4 +1,4 @@
-const cacheName = "codequest-academy-v4";
+const cacheName = "codequest-academy-v5";
 const coreAssets = [
   "./",
   "./index.html",
