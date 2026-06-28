@@ -1269,6 +1269,7 @@ async function syncCurrentProfile(sessionUser = null) {
 
 function exportProgressSnapshot() {
   const user = state();
+  const safeName = user.username.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-|-$/g, "") || "learner";
   const snapshot = {
     username: user.username,
     plan: user.plan,
@@ -1285,7 +1286,7 @@ function exportProgressSnapshot() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `codequest-progress-${user.username}.json`;
+  link.download = `codequest-progress-${safeName}.json`;
   link.click();
   URL.revokeObjectURL(url);
   toast = "Progress export downloaded.";
@@ -1300,6 +1301,9 @@ function escapeHtml(value) {
 }
 
 async function initApp() {
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  }
   if (isSupabaseConfigured()) {
     try {
       const session = await getCurrentSession();

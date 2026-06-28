@@ -1,0 +1,19 @@
+{
+  "name": "CodeQuest Academy",
+  "short_name": "CodeQuest",
+  "description": "Gamified programming courses with missions, XP, projects, and certificates.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f9fe",
+  "theme_color": "#075fd8",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "src/assets/codequest-hero.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

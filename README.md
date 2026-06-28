@@ -1,6 +1,6 @@
 # CodeQuest Academy
 
-Static MVP for a gamified programming-learning platform.
+Static release MVP for a gamified programming academy: course maps, locked lesson progression, XP, coins, projects, certificates, RU/ENG switching, local progress, and optional Supabase Auth.
 
 ## Local Preview
 
@@ -10,9 +10,19 @@ node dev-server.mjs
 
 Open `http://localhost:4173/`.
 
+## Release Features
+
+- GitHub Pages-ready static app.
+- PWA manifest and service worker for cached core assets.
+- `404.html` fallback for Pages refresh/direct-link behavior.
+- Sequential Duolingo-style lesson map.
+- Exportable progress snapshot.
+- Certificate previews with stable verification IDs.
+- Supabase-ready profile, progress, project, certificate, and subscription schema.
+
 ## GitHub Pages
 
-The app is ready for GitHub Pages. The deployment workflow publishes the repository root from the `main` branch.
+The deployment workflow publishes the repository root from the `main` branch.
 
 Expected Pages URL:
 
@@ -27,3 +37,22 @@ https://milkiees6faceit.github.io/codequest/
 3. Enable Email auth in Supabase Authentication settings.
 
 Only public browser keys belong in `index.html`. Never put a service-role key in this static app.
+
+## Pre-Release Checks
+
+```bash
+node --check src/app.js
+node --check src/store/userStore.js
+node --check src/data/demoCourses.js
+node --check src/lib/supabaseClient.js
+node dev-server.mjs
+```
+
+Then verify:
+
+- home page opens;
+- registration/demo login opens the workspace;
+- lesson completion unlocks the next level;
+- project requirements lock/unlock correctly;
+- export downloads JSON;
+- GitHub Pages deployment succeeds.
