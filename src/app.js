@@ -354,7 +354,7 @@ function publicShell(content, meta = {}) {
         ${toast ? `<div class="toast">${toast}</div>` : ""}
         ${content}
       </main>
-      ${modal ? modalTemplate() : ""}
+      ${modal ? modalTemplateRelease() : ""}
     </div>
   `;
 }
@@ -400,7 +400,7 @@ function shell(content, meta = {}) {
         ${toast ? `<div class="toast">${toast}</div>` : ""}
         ${content}
       </main>
-      ${modal ? modalTemplate() : ""}
+      ${modal ? modalTemplateRelease() : ""}
     </div>
   `;
 }
@@ -941,8 +941,212 @@ function certificateCopy() {
   return `CodeQuest Academy certifies ${user.username} completed ${course.title}. Certificate ID: ${id}. Verification link: ${certificateVerifyUrl(id)}.`;
 }
 
+function homeRelease() {
+  const user = state();
+  const active = selectedCourse();
+  const activeLessons = getLessons(active.id);
+  return shell(`
+    <section class="command-center">
+      <div class="command-copy">
+        <span class="mini-label">CodeQuest OS</span>
+        <h2>Платформа для прокачки кода через практические миссии</h2>
+        <p>Карта навыков, встроенный редактор, проверка решений, XP, проекты, сертификаты и понятный прогресс без лишней сложности.</p>
+        <div class="actions">
+          <button class="primary-btn" data-route="lesson">Открыть Code Lab</button>
+          <button class="secondary-btn" data-route="courses">Смотреть треки</button>
+        </div>
+      </div>
+      <div class="lab-preview">
+        <div class="window-bar"><span></span><span></span><span></span><strong>${selectedLesson.id}</strong></div>
+        <pre><code>${escapeHtml(selectedLesson.starterCode)}</code></pre>
+        <div class="preview-status">
+          <span class="status-dot"></span>
+          <strong>${completedForCourse(active.id)}/${activeLessons.length} ${active.language} missions completed</strong>
+          <span class="tag">+${selectedLesson.xp} XP</span>
+        </div>
+      </div>
+    </section>
+    <section class="insight-grid">
+      ${statCard("Level", user.level, "Current tier")}
+      ${statCard("Streak", user.streak, "Days in a row")}
+      ${statCard("Coins", user.coins, "Earned by learning")}
+      ${statCard(active.language, `${courseProgress(active)}%`, "Current path")}
+    </section>
+    <section class="split-layout">
+      <article class="panel focus-panel">
+        <div class="section-head">
+          <div><span class="mini-label">Current track</span><h2>${active.title}</h2></div>
+          <button class="secondary-btn compact" data-route="course">Open map</button>
+        </div>
+        <p class="muted">${active.description}</p>
+        <div class="track-strip">
+          ${activeLessons.map((lesson, index) => `<button class="${user.completedLessons.includes(lesson.id) ? "done" : ""}" data-lesson="${lesson.id}">${index + 1}</button>`).join("")}
+        </div>
+      </article>
+      <article class="panel">
+        <span class="mini-label">Daily quests</span>
+        <div class="process-list">${dailyQuests.map((quest) => questRow(quest)).join("")}</div>
+      </article>
+    </section>
+  `, { title: "Dashboard", kicker: "Learning workspace" });
+}
+
+function publicHomeRelease() {
+  return publicShell(`
+    <section class="landing-hero">
+      <div class="landing-copy">
+        <span class="mini-label">CodeQuest Academy</span>
+        <h2>Учись программировать через миссии, проекты и понятный прогресс</h2>
+        <p>Современная платформа для HTML, CSS, JavaScript, Python и C++: короткая теория, встроенный редактор, XP, портфолио-проекты и сертификаты.</p>
+        <div class="actions">
+          <button class="primary-btn" data-route="auth">Начать бесплатно</button>
+          <button class="secondary-btn" data-route="courses">Посмотреть курсы</button>
+        </div>
+        <div class="landing-trust"><span>5 направлений</span><span>Code Lab</span><span>Free + Pro</span><span>Сертификаты</span></div>
+      </div>
+      <div class="landing-product">
+        <div class="window-bar"><span></span><span></span><span></span><strong>${selectedLesson.id}</strong></div>
+        <pre><code>${escapeHtml(selectedLesson.starterCode)}</code></pre>
+        <div class="preview-status"><span class="status-dot"></span><strong>Code check ready</strong><span class="tag">+${selectedLesson.xp} XP</span></div>
+      </div>
+    </section>
+    <section class="landing-section">
+      <div class="landing-section-head"><span class="mini-label">Преимущества</span><h2>Не просто уроки, а система роста</h2></div>
+      <div class="benefit-grid">
+        ${benefitCard("Практика с первого экрана", "Каждая тема сразу закрепляется задачей во встроенном редакторе кода.")}
+        ${benefitCard("Игровой прогресс без детскости", "XP, streak, coins и badges помогают видеть движение, но интерфейс остается профессиональным.")}
+        ${benefitCard("Проекты для портфолио", "После глав открываются мини-проекты: лендинг, анимации, todo app, калькулятор и dashboard.")}
+        ${benefitCard("AI Tutor и подсказки", "Наставник помогает понять ошибку и дает подсказку, не раскрывая ответ сразу.")}
+      </div>
+    </section>
+    <section class="landing-section split-layout">
+      <article class="panel about-panel">
+        <span class="mini-label">О нас</span>
+        <h2>Обучение программированию как рабочий продукт</h2>
+        <p>CodeQuest Academy соединяет структуру курса, игровой прогресс и реальные задания, чтобы новичок понимал, что делать сегодня и куда двигаться дальше.</p>
+        <button class="primary-btn" data-route="auth">Создать аккаунт</button>
+      </article>
+      <article class="panel">
+        <span class="mini-label">Как это работает</span>
+        <div class="process-list">
+          ${["Выбираешь трек", "Проходишь короткую миссию", "Пишешь код в Code Lab", "Получаешь XP и открываешь проект"].map((item, index) => `
+            <div><strong>0${index + 1}</strong><span>${item}<small>${index === 3 ? "Проекты идут в портфолио" : "Без лишней теории"}</small></span></div>
+          `).join("")}
+        </div>
+      </article>
+    </section>
+    <section class="landing-section">
+      <div class="landing-section-head"><span class="mini-label">Планы</span><h2>Начни бесплатно, расширяйся когда готов</h2></div>
+      <div class="landing-plan-grid">
+        ${landingPlan("Free", "$0", "5 уроков в день, все языки в каталоге, XP, рейтинг и базовые проекты.", "Начать", "auth")}
+        ${landingPlan("Pro Monthly", "$10", "Без лимитов, полные курсы, все проекты, сертификаты и приоритетные обновления.", "Открыть Pro", "pricing")}
+        ${landingPlan("Pro Yearly", "$90", "Все из Monthly, экономия $30, Pro badge и ранний доступ к новым функциям.", "Выбрать Yearly", "pricing")}
+      </div>
+    </section>
+  `, { title: "Главная", kicker: "Учись кодить через практику" });
+}
+
+function courseDetailRelease() {
+  const user = state();
+  const course = selectedCourse();
+  const lessons = getLessons(course.id);
+  const completed = new Set(user.completedLessons);
+  const lockedCourse = course.pro && !isPro();
+  const nextLesson = nextLessonForCourse(course.id, user);
+  const primaryCourseAction = lockedCourse
+    ? `<button class="primary-btn" data-route="pricing">Unlock Pro</button>`
+    : `<button class="primary-btn" data-lesson="${nextLesson?.id || ""}">Continue</button>`;
+  const renderMissionNode = (lesson, index) => {
+    const sequenceLocked = isLessonSequenceLocked(lesson, user);
+    const locked = lockedCourse || sequenceLocked || (!isPro() && user.dailyLessonsCompleted >= 5 && !completed.has(lesson.id));
+    const done = completed.has(lesson.id);
+    const boss = lesson.title.toLowerCase().includes("boss");
+    const current = !done && !locked && nextLesson?.id === lesson.id;
+    return `<button class="mission-node ${done ? "done" : ""} ${locked ? "locked" : ""} ${boss ? "boss" : ""}" data-lesson="${lesson.id}">
+      <span class="path-step">${done ? "OK" : `0${index + 1}`}</span>
+      <span class="mission-copy"><strong>${lesson.title}</strong><small>${lesson.content}</small></span>
+      <span class="mission-meta"><span class="tag">${lesson.xp} XP</span><span class="tag">${done ? "Done" : locked ? "Locked" : current ? "Next" : boss ? "Boss" : "Open"}</span></span>
+    </button>`;
+  };
+  const unitMap = course.units?.map((unit, unitIndex) => {
+    const unitLessons = unit.lessons.map((id) => lessons.find((lesson) => lesson.id === id)).filter(Boolean);
+    const completeCount = unitLessons.filter((lesson) => completed.has(lesson.id)).length;
+    const firstLessonIndex = lessons.findIndex((lesson) => lesson.id === unitLessons[0]?.id);
+    return `<article class="path-unit">
+      <div class="path-unit-head"><span class="unit-index">${String(unitIndex + 1).padStart(2, "0")}</span><div><span class="mini-label">${completeCount}/${unitLessons.length} levels</span><h3>${unit.title}</h3></div></div>
+      <div class="unit-levels">${unitLessons.map((lesson, levelIndex) => renderMissionNode(lesson, firstLessonIndex + levelIndex)).join("")}</div>
+    </article>`;
+  }).join("");
+  return shell(`
+    <section class="split-layout wide-left">
+      <article class="panel course-hero">
+        <span class="mini-label">${course.title}</span>
+        <h2>${course.language} mission path</h2>
+        <p>${course.description} ${lockedCourse ? "This track is available on Pro." : "Open the next mission, solve it in Code Lab, and collect XP."}</p>
+        <div class="insight-grid compact-grid">
+          ${statCard("Progress", `${courseProgress(course)}%`, "Track completion")}
+          ${statCard("XP Pool", course.xp, "Available reward")}
+          ${statCard("Status", lockedCourse ? "Locked" : "Open", "Access")}
+        </div>
+        <div class="actions">${primaryCourseAction}<button class="secondary-btn" data-certificate="${course.id}">Certificate preview</button></div>
+      </article>
+      <section class="mission-path" aria-label="${course.title} lesson path">${unitMap || lessons.map(renderMissionNode).join("")}</section>
+    </section>
+  `, { title: "Learning Map", kicker: `${course.language} track` });
+}
+
+function lessonViewRelease() {
+  const user = state();
+  const course = getCourseByLesson(selectedLesson.id);
+  const locked = (course.pro && !isPro()) || (!isPro() && user.dailyLessonsCompleted >= 5 && !user.completedLessons.includes(selectedLesson.id));
+  const lessonDone = user.completedLessons.includes(selectedLesson.id);
+  const nextUnlockedLesson = lessonDone ? nextLessonAfter(selectedLesson.id, user) : null;
+  return shell(`
+    <section class="lab-layout">
+      <article class="panel lesson-brief">
+        <span class="mini-label">${course.language} mission</span>
+        <h2>${selectedLesson.title}</h2>
+        <p>${selectedLesson.content}</p>
+        <div class="hint-box"><strong>Hint</strong><span>${selectedLesson.hint}</span></div>
+        <div class="hint-box"><strong>Expected behavior</strong><span>Answer is checked with normalized code, so spacing differences are okay.</span></div>
+        <div class="actions"><button class="secondary-btn compact" data-cycle-lesson="prev">Prev</button><button class="secondary-btn compact" data-cycle-lesson="next">Next</button></div>
+      </article>
+      <article class="panel editor-panel">
+        <div class="row-between"><div><span class="mini-label">Editor</span><h2>Mission workspace</h2></div><span class="tag">${isPro() ? "Unlimited Pro" : `${user.dailyLessonsCompleted}/5 Free`}</span></div>
+        <textarea aria-label="Mission code editor" ${locked ? "disabled" : ""} spellcheck="false">${code}</textarea>
+        ${locked ? `<div class="empty-note">This mission is locked by your current access or daily limit.</div>` : ""}
+        <div class="actions">
+          <button class="primary-btn" data-check-code ${locked ? "disabled" : ""}>Check</button>
+          ${nextUnlockedLesson ? `<button class="primary-btn" data-lesson="${nextUnlockedLesson.id}">Next level</button>` : ""}
+          <button class="secondary-btn" data-fill-answer>Use sample answer</button>
+          <button class="ghost-btn" data-reset-code>Reset</button>
+          <button class="secondary-btn" data-tutor-ask>Ask AI Tutor</button>
+        </div>
+      </article>
+    </section>
+  `, { title: "Code Lab", kicker: "Interactive validation" });
+}
+
+function authViewRelease() {
+  return authView().replace("Р РµРіРёСЃС‚СЂР°С†РёСЏ", "Регистрация");
+}
+
+function modalTemplateRelease() {
+  const copy = {
+    limit: ["Daily limit reached", "You have completed 5 free lessons today. Upgrade to Pro for unlimited access to all courses."],
+    pro: ["Pro access", "In production this opens checkout for cards, Apple Pay, and Google Pay. In this release preview it activates Pro locally."],
+    certificate: ["Certificate preview", certificateCopy()],
+    tutor: ["AI Tutor", "Free includes 5 tutor questions per day. Pro removes this limit."],
+  }[modal];
+  const upgradeModal = ["limit", "pro", "tutor"].includes(modal);
+  const actions = upgradeModal
+    ? `<button class="primary-btn" data-confirm-pro>Upgrade to Pro</button><button class="secondary-btn" data-close-only>Maybe Later</button>`
+    : `<button class="primary-btn" data-close-only>Close</button>`;
+  return `<div class="modal-backdrop"><div class="modal"><h2>${copy[0]}</h2><p class="muted">${copy[1]}</p><div class="actions">${actions}</div></div></div>`;
+}
+
 function render() {
-  const views = { home: isRegistered() ? home : publicHome, courses: coursesView, course: courseDetail, lesson: lessonView, profile: profileView, leaderboard: leaderboardView, projects: projectsView, pricing: pricingView, auth: authView, verify: verifyView, more: moreView };
+  const views = { home: isRegistered() ? homeRelease : publicHomeRelease, courses: coursesView, course: courseDetailRelease, lesson: lessonViewRelease, profile: profileView, leaderboard: leaderboardView, projects: projectsView, pricing: pricingView, auth: authViewRelease, verify: verifyView, more: moreView };
   if (!isRegistered() && !publicRoutes.has(route)) route = "auth";
   syncUrlRoute(route);
   document.documentElement.lang = lang();
