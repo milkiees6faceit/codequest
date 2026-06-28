@@ -1145,13 +1145,137 @@ function modalTemplateRelease() {
   return `<div class="modal-backdrop"><div class="modal"><h2>${copy[0]}</h2><p class="muted">${copy[1]}</p><div class="actions">${actions}</div></div></div>`;
 }
 
+function authViewProduction() {
+  const configured = isSupabaseConfigured();
+  const busy = authBusy ? "disabled" : "";
+  return publicShell(`
+    <section class="panel auth-status-panel">
+      <div>
+        <span class="mini-label">Supabase Auth</span>
+        <h2>${configured ? "Ready for email login" : "Preview access available"}</h2>
+        <p class="muted">${configured ? "Email/password registration is connected. After login the dashboard navigation appears." : "Supabase can be connected with a public URL and anon key. Preview access lets reviewers test the product now."}</p>
+      </div>
+      <span class="tag">${configured ? "Connected" : "Preview mode"}</span>
+    </section>
+    <section class="split-layout">
+      <article class="panel">
+        <span class="mini-label">Login</span>
+        <h2>Sign in</h2>
+        <p class="muted">Use Supabase Auth when configured, or open preview access to review the learning workspace.</p>
+        <div class="auth-form">
+          <label>Email<input class="input" data-login-email type="email" autocomplete="email" placeholder="you@example.com" /></label>
+          <label>Password<input class="input" data-login-password type="password" autocomplete="current-password" placeholder="password" /></label>
+          <button class="primary-btn" data-login-supabase ${busy}>Sign in</button>
+          <button class="secondary-btn" data-login-demo ${busy}>Preview access: ${state().username}</button>
+        </div>
+      </article>
+      <article class="panel">
+        <span class="mini-label">Register</span>
+        <h2>Create account</h2>
+        <p class="muted">Profiles and progress sync to Supabase when a project key is configured.</p>
+        <div class="auth-form">
+          <label>Username<input class="input" data-register-username autocomplete="username" placeholder="NovaCoder" /></label>
+          <label>Email<input class="input" data-register-email type="email" autocomplete="email" placeholder="you@example.com" /></label>
+          <label>Password<input class="input" data-register-password type="password" autocomplete="new-password" placeholder="minimum 6 characters" /></label>
+          <button class="primary-btn auth-save" data-register-supabase ${busy}>Create account</button>
+        </div>
+      </article>
+    </section>
+  `, { title: "Registration", kicker: "Access and preview" });
+}
+
+function verifyViewProduction() {
+  const user = state();
+  const id = verifyCertificateId || new URLSearchParams(window.location.search).get("verify") || "";
+  const course = certificateById(id, user);
+  return publicShell(`
+    <section class="panel verification-panel">
+      <span class="mini-label">Certificate verification</span>
+      <h2>${id ? escapeHtml(id) : "Enter a certificate ID"}</h2>
+      ${course ? `
+        <div class="verification-status valid">Valid certificate in this profile</div>
+        <p class="muted">CodeQuest Academy certifies ${user.username} completed ${course.title}.</p>
+        <div class="insight-grid compact-grid">
+          ${statCard("Course", course.language, "Track")}
+          ${statCard("Missions", getLessons(course.id).length, "Completed")}
+          ${statCard("Status", "Valid", "Verification")}
+        </div>
+      ` : `
+        <div class="verification-status pending">No matching local certificate</div>
+        <p class="muted">This release verifies certificates saved in the current learner profile. Public database verification is supported by the Supabase schema when deployed with a project key.</p>
+      `}
+      <div class="auth-form">
+        <label>Certificate ID<input class="input" data-verify-input value="${escapeHtml(id)}" placeholder="CQ-HTML-123456" /></label>
+        <button class="primary-btn" data-run-verify>Verify certificate</button>
+        <button class="secondary-btn" data-route="home">Back to home</button>
+      </div>
+    </section>
+  `, { title: "Verify Certificate", kicker: "Public proof" });
+}
+
+function moreViewProduction() {
+  const user = state();
+  const readyCertificates = completedCourses(user);
+  return shell(`
+    <section class="system-grid">
+      <article class="panel">
+        <span class="mini-label">AI Tutor</span>
+        <h2>${isPro() ? "Unlimited" : `${user.tutorQuestionsUsed}/5 today`}</h2>
+        <p class="muted">Ask for hints, explanations, similar tasks, or solution feedback.</p>
+        <div class="tag-list">${tutorPrompts.map((prompt) => `<button class="tag tutor-chip" data-tutor-prompt="${prompt}">${prompt}</button>`).join("")}</div>
+      </article>
+      <article class="panel">
+        <span class="mini-label">Referral</span>
+        <h2>${user.referralCount} invited - ${user.proReferralCount} Pro</h2>
+        <p class="muted">codequest.app/ref/${user.username}</p>
+        <button class="secondary-btn compact" data-copy-referral>Copy referral</button>
+      </article>
+      <article class="panel">
+        <span class="mini-label">Certificates</span>
+        <h2>${readyCertificates.length}</h2>
+        <p class="muted">${readyCertificates.length ? readyCertificates.map((course) => `${course.language}: ${certificateId(course, user)}`).join(", ") : "Complete a course to generate the first certificate."}</p>
+      </article>
+      <article class="panel">
+        <span class="mini-label">Shop</span>
+        <div class="shop-list">${shopItems.map((item) => shopItem(item, user)).join("")}</div>
+      </article>
+      <article class="panel">
+        <span class="mini-label">Roadmap</span>
+        <p>Frontend: HTML -> CSS -> JavaScript -> Git -> React -> Next.js. Backend: Python -> SQL -> API -> Databases -> Docker.</p>
+      </article>
+      <article class="panel">
+        <span class="mini-label">Admin scope</span>
+        <p>Release scope covers courses, lessons, subscriptions, analytics, payments, certificates, achievements, and daily limits.</p>
+      </article>
+    </section>
+  `, { title: "Systems", kicker: "Platform modules" });
+}
+
 function render() {
-  const views = { home: isRegistered() ? homeRelease : publicHomeRelease, courses: coursesView, course: courseDetailRelease, lesson: lessonViewRelease, profile: profileView, leaderboard: leaderboardView, projects: projectsView, pricing: pricingView, auth: authViewRelease, verify: verifyView, more: moreView };
+  const views = { home: isRegistered() ? homeRelease : publicHomeRelease, courses: coursesView, course: courseDetailRelease, lesson: lessonViewRelease, profile: profileView, leaderboard: leaderboardView, projects: projectsView, pricing: pricingView, auth: authViewProduction, verify: verifyViewProduction, more: moreViewProduction };
   if (!isRegistered() && !publicRoutes.has(route)) route = "auth";
   syncUrlRoute(route);
   document.documentElement.lang = lang();
-  app.innerHTML = views[route]();
-  bindEvents();
+  try {
+    app.innerHTML = views[route]();
+    bindEvents();
+  } catch (error) {
+    app.innerHTML = releaseErrorView(error);
+  }
+}
+
+function releaseErrorView(error) {
+  return `
+    <main class="workspace">
+      <section class="panel empty-note">
+        <span class="mini-label">Runtime recovery</span>
+        <h1>CodeQuest Academy needs a refresh</h1>
+        <p>Your saved progress is still stored locally.</p>
+        <p class="muted">${escapeHtml(error?.message || "Unknown render error")}</p>
+        <button class="primary-btn" onclick="window.location.reload()">Reload app</button>
+      </section>
+    </main>
+  `;
 }
 
 function bindEvents() {
